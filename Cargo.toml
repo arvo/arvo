@@ -7,6 +7,9 @@ authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
 name = "arvo"
 path = "src/lib.rs"
 
+[dependencies.getopts]
+version = "*"
+
 [dependencies.libprelude]
 path = "src/libprelude"
 version = "*"
