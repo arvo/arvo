@@ -1,0 +1,13 @@
+[package]
+name = "libruntime"
+version = "0.1.0"
+authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
+
+[lib]
+name = "libruntime"
+path = "lib.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+lazy_static = "*"
+libc = "*"

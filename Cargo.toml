@@ -1,0 +1,25 @@
+[package]
+name = "arvo"
+version = "0.0.0"
+authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
+
+[lib]
+name = "arvo"
+path = "src/lib.rs"
+
+[dependencies.libprelude]
+path = "src/libprelude"
+version = "*"
+
+[dependencies.libruntime]
+path = "src/libruntime"
+version = "*"
+
+[dependencies.lazy_static]
+version = "*"
+
+[dependencies.libc]
+version = "*"
+
+[dependencies.llvm-sys]
+version = "39"
