@@ -3,10 +3,11 @@
 use super::bair::{Object, PrimitiveType};
 use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
+// pub mod prelude;
 pub mod visitor;
 
-macro_rules! message_expr {
-    ($expr: expr => $($method: ident ( $($arg: expr ),* )).+) => (match *$expr {
+macro_rules! expr_proxy {
+    ($expr: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $expr {
         Expr::Block(ref expr) => expr.$($method($($arg),*)).+,
         Expr::Call(ref expr) => expr.$($method($($arg),*)).+,
         Expr::Def(ref expr) => expr.$($method($($arg),*)).+,
@@ -21,16 +22,16 @@ macro_rules! message_expr {
     });
 }
 
-macro_rules! message_item {
-    ($item: expr => $($method: ident ( $($arg: expr ),* )).+) => (match *$item {
+macro_rules! item_proxy {
+    ($item: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $item {
         Item::Function(ref item) => item.$($method($($arg),*)).+,
         Item::Unresolved(ref item) => item.$($method($($arg),*)).+,
         Item::Variable(ref item) => item.$($method($($arg),*)).+,
     });
 }
 
-macro_rules! message_type {
-    ($ty: expr => $($method: ident ( $($arg: expr ),* )).+) => (match *$ty {
+macro_rules! type_proxy {
+    ($ty: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $ty {
         Type::Lambda(ref ty) => ty.$($method($($arg),*)).+,
         Type::Primitive(ref ty) => ty.$($method($($arg),*)).+,
         Type::Ref(ref ty) => ty.$($method($($arg),*)).+,
@@ -206,13 +207,13 @@ pub enum Expr {
 
 impl Identify for Expr {
     fn identify(&self) -> Identifier {
-        message_expr![self => identify()]
+        expr_proxy![*self => identify()]
     }
 }
 
 impl Typedef for Expr {
     fn typedef(&self) -> Type {
-        message_expr![self => typedef()]
+        expr_proxy![*self => typedef()]
     }
 }
 
@@ -251,6 +252,12 @@ impl Identify for RawForExpr {
 #[derive(Clone)]
 pub struct Function(Object<RawFunction>);
 
+impl Function {
+    pub fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> Function {
+        Function(object!(RawFunction::new(symbol, formals, ret, body)))
+    }
+}
+
 impl Identify for Function {
     fn identify(&self) -> Identifier {
         object_proxy![self.0 => identify()]
@@ -272,6 +279,20 @@ impl Typedef for Function {
 #[derive(Clone)]
 struct RawFunction {
     symbol: Symbol,
+    formals: Variables,
+    ret: Type,
+    body: Option<Expr>,
+}
+
+impl RawFunction {
+    fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> RawFunction {
+        RawFunction {
+            symbol: symbol,
+            formals: formals,
+            ret: ret,
+            body: body,
+        }
+    }
 }
 
 impl Identify for RawFunction {
@@ -288,7 +309,10 @@ impl Symbolise for RawFunction {
 
 impl Typedef for RawFunction {
     fn typedef(&self) -> Type {
-        unimplemented!()
+        Type::Lambda(LambdaType::new(
+            self.formals.iter().map(|formal| formal.typedef()).collect(),
+            self.ret.clone()
+        ))
     }
 }
 
@@ -328,10 +352,10 @@ struct RawIfExpr {
 
 impl RawIfExpr {
     fn new(identifier: Identifier,
-               conditional_expr: Expr,
-               then_expr: Expr,
-               else_expr: Expr)
-               -> RawIfExpr {
+           conditional_expr: Expr,
+           then_expr: Expr,
+           else_expr: Expr)
+           -> RawIfExpr {
         RawIfExpr {
             identifier: identifier,
             conditional_expr: conditional_expr,
@@ -381,19 +405,19 @@ pub struct RawItemExpr {
 
 impl Identify for RawItemExpr {
     fn identify(&self) -> Identifier {
-        message_item![&self.item => identify()]
+        item_proxy![*&self.item => identify()]
     }
 }
 
 impl Symbolise for RawItemExpr {
     fn symbolise(&self) -> Symbol {
-        message_item![&self.item => symbolise()]
+        item_proxy![*&self.item => symbolise()]
     }
 }
 
 impl Typedef for RawItemExpr {
     fn typedef(&self) -> Type {
-        message_item![&self.item => typedef()]
+        item_proxy![*&self.item => typedef()]
     }
 }
 
@@ -514,8 +538,7 @@ impl Typedef for Literal {
 #[derive(Clone)]
 pub struct Module(Object<RawModule>);
 
-pub struct RawModule {
-}
+pub struct RawModule {}
 
 ///
 #[derive(Clone)]
@@ -583,9 +606,7 @@ struct RawRefType {
 
 impl RawRefType {
     fn new(referent: Type) -> RawRefType {
-        RawRefType {
-            referent: referent,
-        }
+        RawRefType { referent: referent }
     }
 }
 
