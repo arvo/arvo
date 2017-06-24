@@ -17,10 +17,12 @@ macro_rules! bin_fn {
             Symbol::new(format!("__libprelude__{}_{}", $op_name, $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr), Variable::new(Symbol::new("y"), $type_expr)],
+            // return type of the function
+            $type_expr,
             // definition of the function
-            None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr, $type_expr], $type_expr)))
+            None
+        )
+    )
 }
 
 macro_rules! add_fn {
@@ -55,10 +57,12 @@ macro_rules! concat_string_fn {
             Symbol::new(format!("__libprelude__concat_string_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
+            // return type of the function
+            Type::Primitive(PrimitiveType::Str),
             // definition of the function
-            None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr], Type::Primitive(PrimitiveType::Str))))
+            None
+        )
+    )
 }
 
 /// Create a `Function` that represents an extern write function.
@@ -77,10 +81,12 @@ macro_rules! write_fn {
             Symbol::new(format!("__libprelude__write_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
+            // return type of the function
+            Type::Primitive(PrimitiveType::Void),
             // definition of the function
-            None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr], Type::Primitive(PrimitiveType::Void))))
+            None
+        )
+    )
 }
 
 /// Create a `Function` that represents an extern writeln function.
@@ -99,10 +105,12 @@ macro_rules! writeln_fn {
             Symbol::new(format!("__libprelude__writeln_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
+            // return type of the function
+            Type::Primitive(PrimitiveType::Void),
             // definition of the function
-            None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr], Type::Primitive(PrimitiveType::Void))))
+            None
+        )
+    )
 }
 
 pub struct Prelude {

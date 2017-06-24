@@ -3,7 +3,7 @@
 use super::bair::{Object, PrimitiveType};
 use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
-// pub mod prelude;
+pub mod prelude;
 pub mod visitor;
 
 macro_rules! expr_proxy {
@@ -309,10 +309,11 @@ impl Symbolise for RawFunction {
 
 impl Typedef for RawFunction {
     fn typedef(&self) -> Type {
-        Type::Lambda(LambdaType::new(
-            self.formals.iter().map(|formal| formal.typedef()).collect(),
-            self.ret.clone()
-        ))
+        Type::Lambda(LambdaType::new(self.formals
+                                         .iter()
+                                         .map(|formal| formal.typedef())
+                                         .collect(),
+                                     self.ret.clone()))
     }
 }
 
@@ -847,6 +848,12 @@ impl Typedef for RawUnresolvedType {
 #[derive(Clone)]
 pub struct Variable(Object<RawVariable>);
 
+impl Variable {
+    pub fn new(symbol: Symbol, ty: Type) -> Variable {
+        Variable(object!(RawVariable::new(symbol, ty)))
+    }
+}
+
 impl Identify for Variable {
     fn identify(&self) -> Identifier {
         object_proxy![self.0 => identify()]
@@ -873,7 +880,14 @@ struct RawVariable {
     ty: Type,
 }
 
-impl RawVariable {}
+impl RawVariable {
+    fn new(symbol: Symbol, ty: Type) -> RawVariable {
+        RawVariable {
+            symbol: symbol,
+            ty: ty,
+        }
+    }
+}
 
 impl Identify for RawVariable {
     fn identify(&self) -> Identifier {
