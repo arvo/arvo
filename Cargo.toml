@@ -26,3 +26,6 @@ version = "*"
 
 [dependencies.llvm-sys]
 version = "39"
+
+[dependencies.regex]
+version = "*"

@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
+extern crate regex;
 
 /// The base IR is declared first so that other IRs can use its macros.
 #[macro_use]
