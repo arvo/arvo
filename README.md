@@ -16,11 +16,15 @@ curl https://sh.rustup.rs -sSf | sh`
 
 ### LLVM
 
-Install LLVM version 3.9. For Ubuntu users see http://apt.llvm.org/. For macOS users use `brew link --force llvm@3.9` (after installing Homebrew https://brew.sh/).
+Install LLVM version 3.9.
+
+For Ubuntu users see http://apt.llvm.org.
+
+For macOS users see https://brew.sh and run the command `brew link --force llvm@3.9`.
 
 ## Building Arvo
 
-Build the Arvo binary nad libraries using
+Build the Arvo binaries and libraries using
 
 ```sh
 cargo build
