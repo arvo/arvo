@@ -6,6 +6,14 @@ use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 pub mod prelude;
 pub mod visitor;
 
+macro_rules! decl_proxy {
+    ($decl: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $decl {
+        Decl::Function(ref decl) => decl.$($method($($arg),*)).+,
+        Decl::Module(ref decl) => decl.$($method($($arg),*)).+,
+        Decl::Type(ref decl) => decl.$($method($($arg),*)).+,
+    });
+}
+
 macro_rules! expr_proxy {
     ($expr: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $expr {
         Expr::Block(ref expr) => expr.$($method($($arg),*)).+,
@@ -158,11 +166,26 @@ impl Typedef for RawCallExpr {
     }
 }
 
+
+///
+#[derive(Clone)]
+pub enum Decl {
+    Function(Function),
+    Module(Module),
+    Type(Type),
+}
+
+pub type Decls = Vec<Decl>;
+
 ///
 #[derive(Clone)]
 pub struct DefExpr(Object<RawDefExpr>);
 
-impl DefExpr {}
+impl DefExpr {
+    pub fn new(identifier: Identifier, variable: Variable, definition: Expr) -> DefExpr {
+        DefExpr(object!(RawDefExpr::new(identifier, variable, definition)))
+    }
+}
 
 impl Identify for DefExpr {
     fn identify(&self) -> Identifier {
@@ -181,6 +204,16 @@ struct RawDefExpr {
     identifier: Identifier,
     variable: Variable,
     definition: Expr,
+}
+
+impl RawDefExpr {
+    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> RawDefExpr {
+        RawDefExpr {
+            identifier: identifier,
+            variable: variable,
+            definition: definition,
+        }
+    }
 }
 
 impl Identify for RawDefExpr {
@@ -539,7 +572,50 @@ impl Typedef for Literal {
 #[derive(Clone)]
 pub struct Module(Object<RawModule>);
 
-pub struct RawModule {}
+impl Module {
+    pub fn new(symbol: Symbol, decls: Decls) -> Module {
+        Module(object!(RawModule::new(symbol, decls)))
+    }
+}
+
+impl Identify for Module {
+    fn identify(&self) -> Identifier {
+        object_proxy![self.0 => identify()]
+    }
+}
+
+impl Symbolise for Module {
+    fn symbolise(&self) -> Symbol {
+        object_proxy![self.0 => symbolise()]
+    }
+}
+
+#[derive(Clone)]
+struct RawModule {
+    symbol: Symbol,
+    decls: Decls,
+}
+
+impl RawModule {
+    fn new(symbol: Symbol, decls: Decls) -> RawModule {
+        RawModule {
+            symbol: symbol,
+            decls: decls,
+        }
+    }
+}
+
+impl Identify for RawModule {
+    fn identify(&self) -> Identifier {
+        self.symbol.identify()
+    }
+}
+
+impl Symbolise for RawModule {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
+    }
+}
 
 ///
 #[derive(Clone)]
