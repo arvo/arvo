@@ -11,7 +11,7 @@ The Arvo programming language.
 Install the latest version of Rust via rustup using the following command
 
 ```sh
-curl https://sh.rustup.rs -sSf | sh`
+curl https://sh.rustup.rs -sSf | sh
 ```
 
 ### LLVM
