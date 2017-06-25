@@ -1,6 +1,6 @@
 # Arvo
 
-![Build status](https://travis-ci.org/arvo/arvo.svg?branch=master)
+[<img src="https://travis-ci.org/arvo/arvo.svg?branch=master">](https://travis-ci.org/arvo/arvo)
 
 The Arvo programming language.
 
