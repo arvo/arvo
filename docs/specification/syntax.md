@@ -2,6 +2,8 @@
 
 > Work in progress.
 
+The grammar presented here is given in Backus–Naur form.
+
 ## Module Declarations
 
 A module declaration defines a new module. If parsing a file, the starting point is `decls_opt` and the surrounding module declaration is implicit (eeah file is considered a module of the same name, and contains module declarations at the top level).
