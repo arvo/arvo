@@ -110,9 +110,11 @@ An expression is some behaviour that will result in a usable value.
 ```
 expr ::= literal_expr | operator_expr | call_expr | item_expr | if_expr | block_expr | for_expr | "(" expr ")"
 
-literal_expr ::= bool | char | float | integer | string | expr ".." expr | "[" literal_list_exprs_opt  "]"
-literal_list_exprs_opt ::= | literal_list_exprs_opt
-literal_list_exprs ::= expr | literal_list_exprs "," expr
+literal_expr ::= bool | char | float | integer | string | expr ".." expr | "[" literal_list_expr  "]"
+literal_channel_expr ::= expr ".." expr
+literal_list_expr ::= "[" literal_list_expr_exprs_opt "]"
+literal_list_expr_exprs_opt ::= | literal_list_expr_exprs
+literal_list_expr_exprs ::= expr | literal_list_expr_exprs "," expr
 
 operator_expr ::= expr bin_operator expr | pre_operator expr
 bin_operator ::= "+=" | "/=" | "*=" | "-=" | "+" | "-" | "/" | "*" | "=" | "<" | ">" | "<=" | ">="
