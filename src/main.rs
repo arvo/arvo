@@ -1,3 +1,5 @@
+//! # Arvo
+
 extern crate getopts;
 
 use getopts::Options;

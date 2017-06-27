@@ -1,3 +1,5 @@
+//! Resolver
+
 use super::air::*;
 use super::ast;
 use super::identifier::Symbolise;
