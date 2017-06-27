@@ -47,6 +47,10 @@ pub fn walk_expr<V: Visitor>(visitor: &mut V, expr: Expr) -> V::Return {
     }
 }
 
+pub fn walk_exprs<V: Visitor>(visitor: &mut V, exprs: Exprs) -> Vec<V::Return> {
+    exprs.into_iter().map(|expr| visitor.visit_expr(expr)).collect()
+}
+
 pub fn walk_type<V: Visitor>(visitor: &mut V, ty: Type) -> V::Return {
     match ty {
         Type::Primitive(primitive_type) => visitor.visit_primitive_type(primitive_type),

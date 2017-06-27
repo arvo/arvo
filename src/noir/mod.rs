@@ -1,13 +1,72 @@
-//! Normalized Intermediate Representation
+//! # Normalised Intermediate Representation
+//!
+//! The normalised intermediate representation (NoIR) is the normalised form
+//! of the AIR. NoIR is produced by normalising an AIR that has been through
+//! all necessary compilation passes, and so by the time a program has reached
+//! this stage of compilation, it is valid. Optimisation passes, and code
+//! generation passes, are done using NoIR.
 
 use std::collections::HashMap;
 
 use super::bair::{Object, PrimitiveType};
 use super::identifier::{Identifier, Identify, Id, Symbol, Symbolise};
 
+#[macro_use]
+pub mod macros;
 pub mod prelude;
 pub mod runtime;
 pub mod visitor;
+
+/// A `Node` representation any IR object from this IR.
+pub enum Node {
+    Expr(Expr),
+    Function(Function),
+    Module(Module),
+    Type(Type),
+    Nil,
+}
+
+impl Default for Node {
+    fn default() -> Node {
+        Node::Nil
+    }
+}
+
+impl From<BlockExpr> for Node {
+    fn from(block_expr: BlockExpr) -> Node {
+        Expr::Block(block_expr).into()
+    }
+}
+
+impl From<CallExpr> for Node {
+    fn from(call_expr: CallExpr) -> Node {
+        Expr::Call(call_expr).into()
+    }
+}
+
+impl From<Expr> for Node {
+    fn from(expr: Expr) -> Node {
+        Node::Expr(expr)
+    }
+}
+
+pub type Nodes = Vec<Node>;
+
+fn into_exprs(nodes: Nodes) -> Exprs {
+    nodes.into_iter().map(|node| Expr::from(node)).collect()
+}
+
+fn into_functions(nodes: Nodes) -> Functions {
+    nodes.into_iter().map(|node| Function::from(node)).collect()
+}
+
+fn into_modules(nodes: Nodes) -> Modules {
+    nodes.into_iter().map(|node| Module::from(node)).collect()
+}
+
+fn into_types(nodes: Nodes) -> Type {
+    nodes.into_iter().map(|node| Type::from(node)).collect()
+}
 
 /// The `Typedef` trait is implemented by nodes that can express some `Type`.
 pub trait Typedef {
@@ -16,11 +75,11 @@ pub trait Typedef {
 
 ///
 #[derive(Clone)]
-pub struct BlockExpr(Object<RawBlockExpr>);
+pub struct BlockExpr(Object<_BlockExpr>);
 
 impl BlockExpr {
     pub fn new(identifier: Identifier, ret: Expr, body: Exprs, epilogue: Exprs) -> BlockExpr {
-        BlockExpr(object!(RawBlockExpr::new(identifier, ret, body, epilogue)))
+        BlockExpr(object!(_BlockExpr::new(identifier, ret, body, epilogue)))
     }
 
     pub fn ret(&self) -> Expr {
@@ -55,16 +114,16 @@ impl Identify for BlockExpr {
 }
 
 #[derive(Clone)]
-struct RawBlockExpr {
+struct _BlockExpr {
     identifier: Identifier,
     ret: Expr,
     body: Exprs,
     epilogue: Exprs,
 }
 
-impl RawBlockExpr {
-    fn new(identifier: Identifier, ret: Expr, body: Exprs, epilogue: Exprs) -> RawBlockExpr {
-        RawBlockExpr {
+impl _BlockExpr {
+    fn new(identifier: Identifier, ret: Expr, body: Exprs, epilogue: Exprs) -> _BlockExpr {
+        _BlockExpr {
             identifier: identifier,
             ret: ret,
             body: body,
@@ -93,7 +152,7 @@ impl RawBlockExpr {
     }
 }
 
-impl Identify for RawBlockExpr {
+impl Identify for _BlockExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -101,11 +160,11 @@ impl Identify for RawBlockExpr {
 
 ///
 #[derive(Clone)]
-pub struct CallExpr(Object<RawCallExpr>);
+pub struct CallExpr(Object<_CallExpr>);
 
 impl CallExpr {
     pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
-        CallExpr(object!(RawCallExpr::new(identifier, target, arguments)))
+        CallExpr(object!(_CallExpr::new(identifier, target, arguments)))
     }
 
     pub fn target(&self) -> Expr {
@@ -134,15 +193,15 @@ impl Identify for CallExpr {
 }
 
 #[derive(Clone)]
-struct RawCallExpr {
+struct _CallExpr {
     identifier: Identifier,
     target: Expr,
     arguments: Exprs,
 }
 
-impl RawCallExpr {
-    fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> RawCallExpr {
-        RawCallExpr {
+impl _CallExpr {
+    fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> _CallExpr {
+        _CallExpr {
             identifier: identifier,
             target: target,
             arguments: arguments,
@@ -162,7 +221,7 @@ impl RawCallExpr {
     }
 }
 
-impl Identify for RawCallExpr {
+impl Identify for _CallExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -193,24 +252,24 @@ impl Context {
 
 ///
 #[derive(Clone)]
-pub struct DefExpr(Object<RawDefExpr>);
+pub struct DefExpr(Object<_DefExpr>);
 
 impl DefExpr {
     pub fn new(identifier: Identifier, variable: Variable, definition: Expr) -> DefExpr {
-        DefExpr(object!(RawDefExpr::new(identifier, variable, definition)))
+        DefExpr(object!(_DefExpr::new(identifier, variable, definition)))
     }
 }
 
 #[derive(Clone)]
-pub struct RawDefExpr {
+struct _DefExpr {
     identifier: Identifier,
     variable: Variable,
     definition: Expr,
 }
 
-impl RawDefExpr {
-    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> RawDefExpr {
-        RawDefExpr {
+impl _DefExpr {
+    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> _DefExpr {
+        _DefExpr {
             identifier: identifier,
             variable: variable,
             definition: definition,
@@ -218,7 +277,7 @@ impl RawDefExpr {
     }
 }
 
-impl Identify for RawDefExpr {
+impl Identify for _DefExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -238,7 +297,17 @@ pub enum Expr {
     StructElement(StructElementExpr),
     Void(VoidExpr),
 }
+
 pub type Exprs = Vec<Expr>;
+
+impl From<Node> for Expr {
+    fn from(node: Node) -> Expr {
+        match node {
+            Node::Expr(expr) => expr,
+            _ => panic!("expected Expr"),
+        }
+    }
+}
 
 impl From<BlockExpr> for Expr {
     fn from(block_expr: BlockExpr) -> Expr {
@@ -284,7 +353,7 @@ impl From<VoidExpr> for Expr {
 
 ///
 #[derive(Clone)]
-pub struct Function(Object<RawFunction>);
+pub struct Function(Object<_Function>);
 pub type Functions = HashMap<Identifier, Function>;
 
 impl Function {
@@ -293,7 +362,7 @@ impl Function {
                block: Option<BlockExpr>,
                ty: LambdaType)
                -> Function {
-        Function(object!(RawFunction::new(symbol, formals, block, ty)))
+        Function(object!(_Function::new(symbol, formals, block, ty)))
     }
 
     pub fn for_formals<T, F: FnMut(&mut Variable) -> T>(&self, mut f: F) {
@@ -338,20 +407,20 @@ impl Symbolise for Function {
 }
 
 #[derive(Clone)]
-struct RawFunction {
+struct _Function {
     symbol: Symbol,
     formals: Variables,
     block: Option<BlockExpr>,
     ty: LambdaType,
 }
 
-impl RawFunction {
+impl _Function {
     fn new(symbol: Symbol,
            formals: Variables,
            block: Option<BlockExpr>,
            ty: LambdaType)
-           -> RawFunction {
-        RawFunction {
+           -> _Function {
+        _Function {
             symbol: symbol,
             formals: formals,
             block: block,
@@ -376,19 +445,19 @@ impl RawFunction {
     }
 }
 
-impl Typedef for RawFunction {
+impl Typedef for _Function {
     fn typedef(&self) -> Type {
         Type::Lambda(self.ty.clone())
     }
 }
 
-impl Identify for RawFunction {
+impl Identify for _Function {
     fn identify(&self) -> Identifier {
         self.symbol.identify()
     }
 }
 
-impl Symbolise for RawFunction {
+impl Symbolise for _Function {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
@@ -396,18 +465,78 @@ impl Symbolise for RawFunction {
 
 ///
 #[derive(Clone)]
-pub enum ItemExpr {
+pub struct ItemExpr(Object<_ItemExpr>);
+
+impl ItemExpr {
+    pub fn new(identifier: Identifier, item: Item) -> ItemExpr {
+        ItemExpr(object!(_ItemExpr::new(identifier, item)))
+    }
+}
+
+impl Identify for ItemExpr {
+    fn identify(&self) -> Identifier {
+        object_proxy![self.0 => identify()]
+    }
+}
+
+impl Symbolise for ItemExpr {
+    fn symbolise(&self) -> Symbol {
+        object_proxy![self.0 => symbolise()]
+    }
+}
+
+impl Typedef for ItemExpr {
+    fn typedef(&self) -> Type {
+        object_proxy![self.0 => typedef()]
+    }
+}
+
+#[derive(Clone)]
+struct _ItemExpr {
+    identifier: Identifier,
+    item: Item,
+}
+
+impl _ItemExpr {
+    fn new(identifier: Identifier, item: Item) -> _ItemExpr {
+        _ItemExpr {
+            identifier: identifier,
+            item: item,
+        }
+    }
+}
+
+impl Identify for _ItemExpr {
+    fn identify(&self) -> Identifier {
+        item_proxy![*&self.item => identify()]
+    }
+}
+
+impl Symbolise for _ItemExpr {
+    fn symbolise(&self) -> Symbol {
+        item_proxy![*&self.item => symbolise()]
+    }
+}
+
+impl Typedef for _ItemExpr {
+    fn typedef(&self) -> Type {
+        item_proxy![*&self.item => typedef()]
+    }
+}
+
+#[derive(Clone)]
+pub enum Item {
     Function(Function),
     Variable(Variable),
 }
 
 ///
 #[derive(Clone)]
-pub struct LambdaType(Object<RawLambdaType>);
+pub struct LambdaType(Object<_LambdaType>);
 
 impl LambdaType {
     pub fn new(formals: Vec<Type>, ty: Type) -> LambdaType {
-        LambdaType(object!(RawLambdaType::new(formals, ty)))
+        LambdaType(object!(_LambdaType::new(formals, ty)))
     }
 
     pub fn for_formals<T, F: FnMut(&mut Type) -> T>(&self, mut f: F) {
@@ -432,14 +561,14 @@ impl Typedef for LambdaType {
 }
 
 #[derive(Clone)]
-pub struct RawLambdaType {
+pub struct _LambdaType {
     formals: Vec<Type>,
     ty: Type,
 }
 
-impl RawLambdaType {
-    fn new(formals: Vec<Type>, ty: Type) -> RawLambdaType {
-        RawLambdaType {
+impl _LambdaType {
+    fn new(formals: Vec<Type>, ty: Type) -> _LambdaType {
+        _LambdaType {
             formals: formals,
             ty: ty,
         }
@@ -454,7 +583,7 @@ impl RawLambdaType {
     }
 }
 
-impl Typedef for RawLambdaType {
+impl Typedef for _LambdaType {
     fn typedef(&self) -> Type {
         self.ty.clone()
     }
@@ -481,11 +610,11 @@ pub enum LiteralExpr {
 
 ///
 #[derive(Clone)]
-pub struct Module(Object<RawModule>);
+pub struct Module(Object<_Module>);
 
 impl Module {
     pub fn new(symbol: Symbol, functions: Functions) -> Module {
-        Module(object!(RawModule::new(symbol, functions)))
+        Module(object!(_Module::new(symbol, functions)))
     }
 
     pub fn add_function(&mut self, function: Function) {
@@ -520,7 +649,7 @@ impl Symbolise for Module {
 }
 
 #[derive(Clone)]
-pub struct RawModule {
+pub struct _Module {
     // identification
     symbol: Symbol,
 
@@ -528,9 +657,9 @@ pub struct RawModule {
     functions: Functions,
 }
 
-impl RawModule {
-    fn new(symbol: Symbol, functions: Functions) -> RawModule {
-        RawModule {
+impl _Module {
+    fn new(symbol: Symbol, functions: Functions) -> _Module {
+        _Module {
             symbol: symbol,
             functions: functions,
         }
@@ -550,13 +679,13 @@ impl RawModule {
     }
 }
 
-impl Identify for RawModule {
+impl Identify for _Module {
     fn identify(&self) -> Identifier {
         self.symbol.identify()
     }
 }
 
-impl Symbolise for RawModule {
+impl Symbolise for _Module {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
@@ -564,7 +693,7 @@ impl Symbolise for RawModule {
 
 ///
 #[derive(Clone)]
-pub struct ProcessExpr(Object<RawProcessExpr>);
+pub struct ProcessExpr(Object<_ProcessExpr>);
 
 impl ProcessExpr {
     pub fn new(identifier: Identifier,
@@ -572,7 +701,7 @@ impl ProcessExpr {
                prelude_variables: Variables,
                body: Exprs)
                -> ProcessExpr {
-        ProcessExpr(object!(RawProcessExpr::new(identifier,
+        ProcessExpr(object!(_ProcessExpr::new(identifier,
                                                 prelude_exprs,
                                                 prelude_variables,
                                                 body)))
@@ -600,20 +729,20 @@ impl Identify for ProcessExpr {
 }
 
 #[derive(Clone)]
-struct RawProcessExpr {
+struct _ProcessExpr {
     identifier: Identifier,
     prelude_exprs: Exprs,
     prelude_variables: Variables,
     body: Exprs,
 }
 
-impl RawProcessExpr {
+impl _ProcessExpr {
     fn new(identifier: Identifier,
            prelude_exprs: Exprs,
            prelude_variables: Variables,
            body: Exprs)
-           -> RawProcessExpr {
-        RawProcessExpr {
+           -> _ProcessExpr {
+        _ProcessExpr {
             identifier: identifier,
             prelude_exprs: prelude_exprs,
             prelude_variables: prelude_variables,
@@ -626,7 +755,7 @@ impl RawProcessExpr {
     }
 }
 
-impl Identify for RawProcessExpr {
+impl Identify for _ProcessExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -634,11 +763,11 @@ impl Identify for RawProcessExpr {
 
 ///
 #[derive(Clone)]
-pub struct ProcessJoinExpr(Object<RawProcessJoinExpr>);
+pub struct ProcessJoinExpr(Object<_ProcessJoinExpr>);
 
 impl ProcessJoinExpr {
     pub fn new(identifier: Identifier, process: ProcessExpr) -> ProcessJoinExpr {
-        ProcessJoinExpr(object!(RawProcessJoinExpr::new(identifier, process)))
+        ProcessJoinExpr(object!(_ProcessJoinExpr::new(identifier, process)))
     }
 
     pub fn process(&self) -> ProcessExpr {
@@ -647,14 +776,14 @@ impl ProcessJoinExpr {
 }
 
 #[derive(Clone)]
-struct RawProcessJoinExpr {
+struct _ProcessJoinExpr {
     identifier: Identifier,
     process: ProcessExpr,
 }
 
-impl RawProcessJoinExpr {
-    fn new(identifier: Identifier, process: ProcessExpr) -> RawProcessJoinExpr {
-        RawProcessJoinExpr {
+impl _ProcessJoinExpr {
+    fn new(identifier: Identifier, process: ProcessExpr) -> _ProcessJoinExpr {
+        _ProcessJoinExpr {
             identifier: identifier,
             process: process,
         }
@@ -667,11 +796,11 @@ impl RawProcessJoinExpr {
 
 ///
 #[derive(Clone)]
-pub struct PtrType(Object<RawPtrType>);
+pub struct PtrType(Object<_PtrType>);
 
 impl PtrType {
     pub fn new(ty: Type) -> PtrType {
-        PtrType(object!(RawPtrType::new(ty)))
+        PtrType(object!(_PtrType::new(ty)))
     }
 
     pub fn ty(&self) -> Type {
@@ -680,13 +809,13 @@ impl PtrType {
 }
 
 #[derive(Clone)]
-struct RawPtrType {
+struct _PtrType {
     ty: Type,
 }
 
-impl RawPtrType {
-    fn new(ty: Type) -> RawPtrType {
-        RawPtrType { ty: ty }
+impl _PtrType {
+    fn new(ty: Type) -> _PtrType {
+        _PtrType { ty: ty }
     }
 
     fn ty(&self) -> &Type {
@@ -696,24 +825,24 @@ impl RawPtrType {
 
 ///
 #[derive(Clone)]
-pub struct StructExpr(Object<RawStructExpr>);
+pub struct StructExpr(Object<_StructExpr>);
 
 impl StructExpr {
     pub fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> StructExpr {
-        StructExpr(object!(RawStructExpr::new(identifier, elements, ty)))
+        StructExpr(object!(_StructExpr::new(identifier, elements, ty)))
     }
 }
 
 #[derive(Clone)]
-struct RawStructExpr {
+struct _StructExpr {
     identifier: Identifier,
     elements: Exprs,
     ty: StructType,
 }
 
-impl RawStructExpr {
-    fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> RawStructExpr {
-        RawStructExpr {
+impl _StructExpr {
+    fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> _StructExpr {
+        _StructExpr {
             identifier: identifier,
             elements: elements,
             ty: ty,
@@ -723,24 +852,24 @@ impl RawStructExpr {
 
 ///
 #[derive(Clone)]
-pub struct StructElementExpr(Object<RawStructElementExpr>);
+pub struct StructElementExpr(Object<_StructElementExpr>);
 
 impl StructElementExpr {
     pub fn new(identifier: Identifier, target: Expr, index: u64) -> StructElementExpr {
-        StructElementExpr(object!(RawStructElementExpr::new(identifier, target, index)))
+        StructElementExpr(object!(_StructElementExpr::new(identifier, target, index)))
     }
 }
 
 #[derive(Clone)]
-struct RawStructElementExpr {
+struct _StructElementExpr {
     identifier: Identifier,
     target: Expr,
     index: u64,
 }
 
-impl RawStructElementExpr {
-    fn new(identifier: Identifier, target: Expr, index: u64) -> RawStructElementExpr {
-        RawStructElementExpr {
+impl _StructElementExpr {
+    fn new(identifier: Identifier, target: Expr, index: u64) -> _StructElementExpr {
+        _StructElementExpr {
             identifier: identifier,
             target: target,
             index: index,
@@ -750,11 +879,11 @@ impl RawStructElementExpr {
 
 ///
 #[derive(Clone)]
-pub struct StructType(Object<RawStructType>);
+pub struct StructType(Object<_StructType>);
 
 impl StructType {
     pub fn new(elements: Variables) -> StructType {
-        StructType(object!(RawStructType::new(elements)))
+        StructType(object!(_StructType::new(elements)))
     }
 
     pub fn for_elements<T, F: FnMut(&mut Variable) -> T>(&self, mut f: F) {
@@ -773,13 +902,13 @@ impl StructType {
 }
 
 #[derive(Clone)]
-struct RawStructType {
+struct _StructType {
     elements: Variables,
 }
 
-impl RawStructType {
-    fn new(elements: Variables) -> RawStructType {
-        RawStructType { elements: elements }
+impl _StructType {
+    fn new(elements: Variables) -> _StructType {
+        _StructType { elements: elements }
     }
 
     fn elements(&self) -> &Variables {
@@ -803,12 +932,12 @@ pub type Types = Vec<Type>;
 
 ///
 #[derive(Clone)]
-pub struct Variable(Object<RawVariable>);
+pub struct Variable(Object<_Variable>);
 pub type Variables = Vec<Variable>;
 
 impl Variable {
     pub fn new(symbol: Symbol, ty: Type) -> Variable {
-        Variable(object!(RawVariable::new(symbol, ty)))
+        Variable(object!(_Variable::new(symbol, ty)))
     }
 }
 
@@ -831,7 +960,7 @@ impl Symbolise for Variable {
 }
 
 #[derive(Clone)]
-struct RawVariable {
+struct _Variable {
     // identification
     symbol: Symbol,
 
@@ -839,28 +968,28 @@ struct RawVariable {
     ty: Type,
 }
 
-impl RawVariable {
-    fn new(symbol: Symbol, ty: Type) -> RawVariable {
-        RawVariable {
+impl _Variable {
+    fn new(symbol: Symbol, ty: Type) -> _Variable {
+        _Variable {
             symbol: symbol,
             ty: ty,
         }
     }
 }
 
-impl Typedef for RawVariable {
+impl Typedef for _Variable {
     fn typedef(&self) -> Type {
         self.ty.clone()
     }
 }
 
-impl Identify for RawVariable {
+impl Identify for _Variable {
     fn identify(&self) -> Identifier {
         self.symbol.identify()
     }
 }
 
-impl Symbolise for RawVariable {
+impl Symbolise for _Variable {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
@@ -868,21 +997,21 @@ impl Symbolise for RawVariable {
 
 ///
 #[derive(Clone)]
-pub struct VoidExpr(Object<RawVoidExpr>);
+pub struct VoidExpr(Object<_VoidExpr>);
 
 impl VoidExpr {
     pub fn new(identifier: Identifier) -> VoidExpr {
-        VoidExpr(object!(RawVoidExpr::new(identifier)))
+        VoidExpr(object!(_VoidExpr::new(identifier)))
     }
 }
 
 #[derive(Clone)]
-struct RawVoidExpr {
+struct _VoidExpr {
     identifier: Identifier,
 }
 
-impl RawVoidExpr {
-    fn new(identifier: Identifier) -> RawVoidExpr {
-        RawVoidExpr { identifier: identifier }
+impl _VoidExpr {
+    fn new(identifier: Identifier) -> _VoidExpr {
+        _VoidExpr { identifier: identifier }
     }
 }

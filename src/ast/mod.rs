@@ -1,52 +1,19 @@
-//! Abstract Syntax Tree
+//! # Abstract Syntax Tree
+//!
+//! The abstract syntax tree (AST) is the representation of the raw input,
+//! after it has been tokenised and parsed. The tokenisation process validates
+//! individual keywords and elements, and the parser checks that they are
+//! assembled in a way that is grammatically correct. At this stage, no
+//! semantic analysis has been done to ensure that the program is actually
+//! valid.
 
 use super::bair::{Object, PrimitiveType};
 use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
+#[macro_use]
+pub mod macros;
 pub mod prelude;
 pub mod visitor;
-
-macro_rules! decl_proxy {
-    ($decl: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $decl {
-        Decl::Function(ref decl) => decl.$($method($($arg),*)).+,
-        Decl::Module(ref decl) => decl.$($method($($arg),*)).+,
-        Decl::Type(ref decl) => decl.$($method($($arg),*)).+,
-    });
-}
-
-macro_rules! expr_proxy {
-    ($expr: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $expr {
-        Expr::Block(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Call(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Def(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::For(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::If(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Item(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Literal(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Ref(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Struct(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::StructElement(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Void(ref expr) => expr.$($method($($arg),*)).+,
-    });
-}
-
-macro_rules! item_proxy {
-    ($item: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $item {
-        Item::Function(ref item) => item.$($method($($arg),*)).+,
-        Item::Unresolved(ref item) => item.$($method($($arg),*)).+,
-        Item::Variable(ref item) => item.$($method($($arg),*)).+,
-    });
-}
-
-macro_rules! type_proxy {
-    ($ty: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $ty {
-        Type::Lambda(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Primitive(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Ref(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Struct(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Unresolved(ref ty) => ty.$($method($($arg),*)).+,
-    });
-}
 
 /// The `Typedef` trait is implemented by nodes that can express some `Type`.
 pub trait Typedef {
@@ -56,11 +23,11 @@ pub trait Typedef {
 /// A `BlockExpr` contains a set of `Exprs` that will be evaluated in a
 /// non-deterministic order. It also contains a return `Expr`.
 #[derive(Clone)]
-pub struct BlockExpr(Object<RawBlockExpr>);
+pub struct BlockExpr(Object<_BlockExpr>);
 
 impl BlockExpr {
     pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
-        BlockExpr(object!(RawBlockExpr::new(identifier, body, ret)))
+        BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
     }
 }
 
@@ -77,15 +44,15 @@ impl Typedef for BlockExpr {
 }
 
 #[derive(Clone)]
-struct RawBlockExpr {
+struct _BlockExpr {
     identifier: Identifier,
     body: Exprs,
     ret: Expr,
 }
 
-impl RawBlockExpr {
-    fn new(identifier: Identifier, body: Exprs, ret: Expr) -> RawBlockExpr {
-        RawBlockExpr {
+impl _BlockExpr {
+    fn new(identifier: Identifier, body: Exprs, ret: Expr) -> _BlockExpr {
+        _BlockExpr {
             identifier: identifier,
             body: body,
             ret: ret,
@@ -97,13 +64,13 @@ impl RawBlockExpr {
     }
 }
 
-impl Identify for RawBlockExpr {
+impl Identify for _BlockExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for RawBlockExpr {
+impl Typedef for _BlockExpr {
     fn typedef(&self) -> Type {
         self.ret.typedef()
     }
@@ -114,11 +81,11 @@ impl Typedef for RawBlockExpr {
 /// call targets. It contains a set of argument `Exprs` that will be passed to
 /// the function call.
 #[derive(Clone)]
-pub struct CallExpr(Object<RawCallExpr>);
+pub struct CallExpr(Object<_CallExpr>);
 
 impl CallExpr {
     pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
-        CallExpr(object!(RawCallExpr::new(identifier, target, arguments)))
+        CallExpr(object!(_CallExpr::new(identifier, target, arguments)))
     }
 }
 
@@ -135,15 +102,15 @@ impl Typedef for CallExpr {
 }
 
 #[derive(Clone)]
-struct RawCallExpr {
+struct _CallExpr {
     identifier: Identifier,
     target: Expr,
     arguments: Exprs,
 }
 
-impl RawCallExpr {
-    fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> RawCallExpr {
-        RawCallExpr {
+impl _CallExpr {
+    fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> _CallExpr {
+        _CallExpr {
             identifier: identifier,
             target: target,
             arguments: arguments,
@@ -151,13 +118,13 @@ impl RawCallExpr {
     }
 }
 
-impl Identify for RawCallExpr {
+impl Identify for _CallExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for RawCallExpr {
+impl Typedef for _CallExpr {
     fn typedef(&self) -> Type {
         if let Type::Lambda(lambda_ty) = self.target.typedef() {
             return lambda_ty.ret();
@@ -165,7 +132,6 @@ impl Typedef for RawCallExpr {
         unimplemented!()
     }
 }
-
 
 ///
 #[derive(Clone)]
@@ -179,11 +145,11 @@ pub type Decls = Vec<Decl>;
 
 ///
 #[derive(Clone)]
-pub struct DefExpr(Object<RawDefExpr>);
+pub struct DefExpr(Object<_DefExpr>);
 
 impl DefExpr {
     pub fn new(identifier: Identifier, variable: Variable, definition: Expr) -> DefExpr {
-        DefExpr(object!(RawDefExpr::new(identifier, variable, definition)))
+        DefExpr(object!(_DefExpr::new(identifier, variable, definition)))
     }
 }
 
@@ -200,15 +166,15 @@ impl Typedef for DefExpr {
 }
 
 #[derive(Clone)]
-struct RawDefExpr {
+struct _DefExpr {
     identifier: Identifier,
     variable: Variable,
     definition: Expr,
 }
 
-impl RawDefExpr {
-    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> RawDefExpr {
-        RawDefExpr {
+impl _DefExpr {
+    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> _DefExpr {
+        _DefExpr {
             identifier: identifier,
             variable: variable,
             definition: definition,
@@ -216,7 +182,7 @@ impl RawDefExpr {
     }
 }
 
-impl Identify for RawDefExpr {
+impl Identify for _DefExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -254,9 +220,17 @@ pub type Exprs = Vec<Expr>;
 
 ///
 #[derive(Clone)]
-pub struct ForExpr(Object<RawForExpr>);
+pub struct ForExpr(Object<_ForExpr>);
 
-impl ForExpr {}
+impl ForExpr {
+    pub fn new(identifier: Identifier,
+               variable: Variable,
+               iterand: Expr,
+               iteration: BlockExpr)
+               -> ForExpr {
+        ForExpr(object!(_ForExpr::new(identifier, variable, iterand, iteration)))
+    }
+}
 
 impl Identify for ForExpr {
     fn identify(&self) -> Identifier {
@@ -271,11 +245,29 @@ impl Typedef for ForExpr {
 }
 
 #[derive(Clone)]
-pub struct RawForExpr {
+struct _ForExpr {
     identifier: Identifier,
+    variable: Variable,
+    iterand: Expr,
+    iteration: BlockExpr,
 }
 
-impl Identify for RawForExpr {
+impl _ForExpr {
+    fn new(identifier: Identifier,
+           variable: Variable,
+           iterand: Expr,
+           iteration: BlockExpr)
+           -> _ForExpr {
+        _ForExpr {
+            identifier: identifier,
+            variable: variable,
+            iterand: iterand,
+            iteration: iteration,
+        }
+    }
+}
+
+impl Identify for _ForExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -283,11 +275,11 @@ impl Identify for RawForExpr {
 
 ///
 #[derive(Clone)]
-pub struct Function(Object<RawFunction>);
+pub struct Function(Object<_Function>);
 
 impl Function {
     pub fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> Function {
-        Function(object!(RawFunction::new(symbol, formals, ret, body)))
+        Function(object!(_Function::new(symbol, formals, ret, body)))
     }
 }
 
@@ -310,16 +302,16 @@ impl Typedef for Function {
 }
 
 #[derive(Clone)]
-struct RawFunction {
+struct _Function {
     symbol: Symbol,
     formals: Variables,
     ret: Type,
     body: Option<Expr>,
 }
 
-impl RawFunction {
-    fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> RawFunction {
-        RawFunction {
+impl _Function {
+    fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> _Function {
+        _Function {
             symbol: symbol,
             formals: formals,
             ret: ret,
@@ -328,19 +320,19 @@ impl RawFunction {
     }
 }
 
-impl Identify for RawFunction {
+impl Identify for _Function {
     fn identify(&self) -> Identifier {
         self.symbolise().identify()
     }
 }
 
-impl Symbolise for RawFunction {
+impl Symbolise for _Function {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
-impl Typedef for RawFunction {
+impl Typedef for _Function {
     fn typedef(&self) -> Type {
         Type::Lambda(LambdaType::new(self.formals
                                          .iter()
@@ -352,15 +344,15 @@ impl Typedef for RawFunction {
 
 ///
 #[derive(Clone)]
-pub struct IfExpr(Object<RawIfExpr>);
+pub struct IfExpr(Object<_IfExpr>);
 
 impl IfExpr {
     pub fn new(identifier: Identifier,
                conditional_expr: Expr,
-               then_expr: Expr,
-               else_expr: Expr)
+               then_block: BlockExpr,
+               else_block: BlockExpr)
                -> IfExpr {
-        IfExpr(object!(RawIfExpr::new(identifier, conditional_expr, then_expr, else_expr)))
+        IfExpr(object!(_IfExpr::new(identifier, conditional_expr, then_block, else_block)))
     }
 }
 
@@ -372,38 +364,38 @@ impl Identify for IfExpr {
 
 impl Typedef for IfExpr {
     fn typedef(&self) -> Type {
-        object_proxy![self.0 => then_expr().typedef()]
+        object_proxy![self.0 => then_block().typedef()]
     }
 }
 
 #[derive(Clone)]
-struct RawIfExpr {
+struct _IfExpr {
     identifier: Identifier,
     conditional_expr: Expr,
-    then_expr: Expr,
-    else_expr: Expr,
+    then_block: BlockExpr,
+    else_block: BlockExpr,
 }
 
-impl RawIfExpr {
+impl _IfExpr {
     fn new(identifier: Identifier,
            conditional_expr: Expr,
-           then_expr: Expr,
-           else_expr: Expr)
-           -> RawIfExpr {
-        RawIfExpr {
+           then_block: BlockExpr,
+           else_block: BlockExpr)
+           -> _IfExpr {
+        _IfExpr {
             identifier: identifier,
             conditional_expr: conditional_expr,
-            then_expr: then_expr,
-            else_expr: else_expr,
+            then_block: then_block,
+            else_block: else_block,
         }
     }
 
-    fn then_expr(&self) -> &Expr {
-        &self.then_expr
+    fn then_block(&self) -> &BlockExpr {
+        &self.then_block
     }
 }
 
-impl Identify for RawIfExpr {
+impl Identify for _IfExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
@@ -411,7 +403,13 @@ impl Identify for RawIfExpr {
 
 ///
 #[derive(Clone)]
-pub struct ItemExpr(Object<RawItemExpr>);
+pub struct ItemExpr(Object<_ItemExpr>);
+
+impl ItemExpr {
+    pub fn new(identifier: Identifier, item: Item) -> ItemExpr {
+        ItemExpr(object!(_ItemExpr::new(identifier, item)))
+    }
+}
 
 impl Identify for ItemExpr {
     fn identify(&self) -> Identifier {
@@ -432,24 +430,33 @@ impl Typedef for ItemExpr {
 }
 
 #[derive(Clone)]
-pub struct RawItemExpr {
+struct _ItemExpr {
     identifier: Identifier,
     item: Item,
 }
 
-impl Identify for RawItemExpr {
+impl _ItemExpr {
+    fn new(identifier: Identifier, item: Item) -> _ItemExpr {
+        _ItemExpr {
+            identifier: identifier,
+            item: item,
+        }
+    }
+}
+
+impl Identify for _ItemExpr {
     fn identify(&self) -> Identifier {
         item_proxy![*&self.item => identify()]
     }
 }
 
-impl Symbolise for RawItemExpr {
+impl Symbolise for _ItemExpr {
     fn symbolise(&self) -> Symbol {
         item_proxy![*&self.item => symbolise()]
     }
 }
 
-impl Typedef for RawItemExpr {
+impl Typedef for _ItemExpr {
     fn typedef(&self) -> Type {
         item_proxy![*&self.item => typedef()]
     }
@@ -464,11 +471,11 @@ pub enum Item {
 
 ///
 #[derive(Clone)]
-pub struct LambdaType(Object<RawLambdaType>);
+pub struct LambdaType(Object<_LambdaType>);
 
 impl LambdaType {
     pub fn new(formals: Types, ret: Type) -> LambdaType {
-        LambdaType(object!(RawLambdaType::new(formals, ret)))
+        LambdaType(object!(_LambdaType::new(formals, ret)))
     }
 
     pub fn ret(&self) -> Type {
@@ -477,14 +484,14 @@ impl LambdaType {
 }
 
 #[derive(Clone)]
-struct RawLambdaType {
+struct _LambdaType {
     formals: Types,
     ret: Type,
 }
 
-impl RawLambdaType {
-    fn new(formals: Types, ret: Type) -> RawLambdaType {
-        RawLambdaType {
+impl _LambdaType {
+    fn new(formals: Types, ret: Type) -> _LambdaType {
+        _LambdaType {
             formals: formals,
             ret: ret,
         }
@@ -497,7 +504,7 @@ impl RawLambdaType {
 
 ///
 #[derive(Clone)]
-pub struct LiteralExpr(Object<RawLiteralExpr>);
+pub struct LiteralExpr(Object<_LiteralExpr>);
 
 impl Identify for LiteralExpr {
     fn identify(&self) -> Identifier {
@@ -512,18 +519,18 @@ impl Typedef for LiteralExpr {
 }
 
 #[derive(Clone)]
-struct RawLiteralExpr {
+struct _LiteralExpr {
     identifier: Identifier,
     literal: Literal,
 }
 
-impl Identify for RawLiteralExpr {
+impl Identify for _LiteralExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for RawLiteralExpr {
+impl Typedef for _LiteralExpr {
     fn typedef(&self) -> Type {
         self.literal.typedef()
     }
@@ -570,11 +577,11 @@ impl Typedef for Literal {
 
 ///
 #[derive(Clone)]
-pub struct Module(Object<RawModule>);
+pub struct Module(Object<_Module>);
 
 impl Module {
     pub fn new(symbol: Symbol, decls: Decls) -> Module {
-        Module(object!(RawModule::new(symbol, decls)))
+        Module(object!(_Module::new(symbol, decls)))
     }
 }
 
@@ -591,39 +598,47 @@ impl Symbolise for Module {
 }
 
 #[derive(Clone)]
-struct RawModule {
+struct _Module {
     symbol: Symbol,
     decls: Decls,
 }
 
-impl RawModule {
-    fn new(symbol: Symbol, decls: Decls) -> RawModule {
-        RawModule {
+impl _Module {
+    fn new(symbol: Symbol, decls: Decls) -> _Module {
+        _Module {
             symbol: symbol,
             decls: decls,
         }
     }
 }
 
-impl Identify for RawModule {
+impl Identify for _Module {
     fn identify(&self) -> Identifier {
         self.symbol.identify()
     }
 }
 
-impl Symbolise for RawModule {
+impl Symbolise for _Module {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
+/// A `Node` representation any IR object from this IR.
+pub enum Node {
+    Expr(Expr),
+    Decl(Decl),
+    Module(Module),
+    Type(Type),
+}
+
 ///
 #[derive(Clone)]
-pub struct RefExpr(Object<RawRefExpr>);
+pub struct RefExpr(Object<_RefExpr>);
 
 impl RefExpr {
     pub fn new(identifier: Identifier, referent: Expr) -> RefExpr {
-        RefExpr(object!(RawRefExpr::new(identifier, referent)))
+        RefExpr(object!(_RefExpr::new(identifier, referent)))
     }
 }
 
@@ -640,27 +655,27 @@ impl Typedef for RefExpr {
 }
 
 #[derive(Clone)]
-struct RawRefExpr {
+struct _RefExpr {
     identifier: Identifier,
     referent: Expr,
 }
 
-impl RawRefExpr {
-    fn new(identifier: Identifier, referent: Expr) -> RawRefExpr {
-        RawRefExpr {
+impl _RefExpr {
+    fn new(identifier: Identifier, referent: Expr) -> _RefExpr {
+        _RefExpr {
             identifier: identifier,
             referent: referent,
         }
     }
 }
 
-impl Identify for RawRefExpr {
+impl Identify for _RefExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for RawRefExpr {
+impl Typedef for _RefExpr {
     fn typedef(&self) -> Type {
         Type::Ref(RefType::new(self.referent.typedef()))
     }
@@ -668,32 +683,32 @@ impl Typedef for RawRefExpr {
 
 ///
 #[derive(Clone)]
-pub struct RefType(Object<RawRefType>);
+pub struct RefType(Object<_RefType>);
 
 impl RefType {
     pub fn new(referent: Type) -> RefType {
-        RefType(object!(RawRefType::new(referent)))
+        RefType(object!(_RefType::new(referent)))
     }
 }
 
 #[derive(Clone)]
-struct RawRefType {
+struct _RefType {
     referent: Type,
 }
 
-impl RawRefType {
-    fn new(referent: Type) -> RawRefType {
-        RawRefType { referent: referent }
+impl _RefType {
+    fn new(referent: Type) -> _RefType {
+        _RefType { referent: referent }
     }
 }
 
 ///
 #[derive(Clone)]
-pub struct StructExpr(Object<RawStructExpr>);
+pub struct StructExpr(Object<_StructExpr>);
 
 impl StructExpr {
     pub fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> StructExpr {
-        StructExpr(object!(RawStructExpr::new(identifier, elements, ty)))
+        StructExpr(object!(_StructExpr::new(identifier, elements, ty)))
     }
 }
 
@@ -710,15 +725,15 @@ impl Typedef for StructExpr {
 }
 
 #[derive(Clone)]
-struct RawStructExpr {
+struct _StructExpr {
     identifier: Identifier,
     elements: Exprs,
     ty: StructType,
 }
 
-impl RawStructExpr {
-    fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> RawStructExpr {
-        RawStructExpr {
+impl _StructExpr {
+    fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> _StructExpr {
+        _StructExpr {
             identifier: identifier,
             elements: elements,
             ty: ty,
@@ -726,13 +741,13 @@ impl RawStructExpr {
     }
 }
 
-impl Identify for RawStructExpr {
+impl Identify for _StructExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for RawStructExpr {
+impl Typedef for _StructExpr {
     fn typedef(&self) -> Type {
         Type::Struct(self.ty.clone())
     }
@@ -740,11 +755,11 @@ impl Typedef for RawStructExpr {
 
 ///
 #[derive(Clone)]
-pub struct StructElementExpr(Object<RawStructElementExpr>);
+pub struct StructElementExpr(Object<_StructElementExpr>);
 
 impl StructElementExpr {
     pub fn new(identifier: Identifier, target: Expr, variable: Variable) -> StructElementExpr {
-        StructElementExpr(object!(RawStructElementExpr::new(identifier, target, variable)))
+        StructElementExpr(object!(_StructElementExpr::new(identifier, target, variable)))
     }
 }
 
@@ -761,15 +776,15 @@ impl Typedef for StructElementExpr {
 }
 
 #[derive(Clone)]
-struct RawStructElementExpr {
+struct _StructElementExpr {
     identifier: Identifier,
     target: Expr,
     variable: Variable,
 }
 
-impl RawStructElementExpr {
-    fn new(identifier: Identifier, target: Expr, variable: Variable) -> RawStructElementExpr {
-        RawStructElementExpr {
+impl _StructElementExpr {
+    fn new(identifier: Identifier, target: Expr, variable: Variable) -> _StructElementExpr {
+        _StructElementExpr {
             identifier: identifier,
             target: target,
             variable: variable,
@@ -777,13 +792,13 @@ impl RawStructElementExpr {
     }
 }
 
-impl Identify for RawStructElementExpr {
+impl Identify for _StructElementExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for RawStructElementExpr {
+impl Typedef for _StructElementExpr {
     fn typedef(&self) -> Type {
         self.variable.typedef()
     }
@@ -791,11 +806,11 @@ impl Typedef for RawStructElementExpr {
 
 ///
 #[derive(Clone)]
-pub struct StructType(Object<RawStructType>);
+pub struct StructType(Object<_StructType>);
 
 impl StructType {
     pub fn new(elements: Variables) -> StructType {
-        StructType(object!(RawStructType::new(elements)))
+        StructType(object!(_StructType::new(elements)))
     }
 
     pub fn for_elements<T, F: FnMut(&mut Variable) -> T>(&self, mut f: F) {
@@ -814,13 +829,13 @@ impl StructType {
 }
 
 #[derive(Clone)]
-struct RawStructType {
+struct _StructType {
     elements: Variables,
 }
 
-impl RawStructType {
-    fn new(elements: Variables) -> RawStructType {
-        RawStructType { elements: elements }
+impl _StructType {
+    fn new(elements: Variables) -> _StructType {
+        _StructType { elements: elements }
     }
 
     fn elements(&self) -> &Variables {
@@ -846,7 +861,7 @@ pub type Types = Vec<Type>;
 
 ///
 #[derive(Clone)]
-pub struct Unresolved(Object<RawUnresolved>);
+pub struct Unresolved(Object<_Unresolved>);
 
 impl Identify for Unresolved {
     fn identify(&self) -> Identifier {
@@ -866,23 +881,23 @@ impl Typedef for Unresolved {
     }
 }
 
-struct RawUnresolved {
+struct _Unresolved {
     symbol: Symbol,
 }
 
-impl Identify for RawUnresolved {
+impl Identify for _Unresolved {
     fn identify(&self) -> Identifier {
         self.symbolise().identify()
     }
 }
 
-impl Symbolise for RawUnresolved {
+impl Symbolise for _Unresolved {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
-impl Typedef for RawUnresolved {
+impl Typedef for _Unresolved {
     fn typedef(&self) -> Type {
         unimplemented!()
     }
@@ -890,7 +905,7 @@ impl Typedef for RawUnresolved {
 
 ///
 #[derive(Clone)]
-pub struct UnresolvedType(Object<RawUnresolvedType>);
+pub struct UnresolvedType(Object<_UnresolvedType>);
 
 impl Symbolise for UnresolvedType {
     fn symbolise(&self) -> Symbol {
@@ -904,17 +919,17 @@ impl Typedef for UnresolvedType {
     }
 }
 
-struct RawUnresolvedType {
+struct _UnresolvedType {
     symbol: Symbol,
 }
 
-impl Symbolise for RawUnresolvedType {
+impl Symbolise for _UnresolvedType {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
-impl Typedef for RawUnresolvedType {
+impl Typedef for _UnresolvedType {
     fn typedef(&self) -> Type {
         unimplemented!()
     }
@@ -922,11 +937,11 @@ impl Typedef for RawUnresolvedType {
 
 ///
 #[derive(Clone)]
-pub struct Variable(Object<RawVariable>);
+pub struct Variable(Object<_Variable>);
 
 impl Variable {
     pub fn new(symbol: Symbol, ty: Type) -> Variable {
-        Variable(object!(RawVariable::new(symbol, ty)))
+        Variable(object!(_Variable::new(symbol, ty)))
     }
 }
 
@@ -951,33 +966,33 @@ impl Typedef for Variable {
 pub type Variables = Vec<Variable>;
 
 #[derive(Clone)]
-struct RawVariable {
+struct _Variable {
     symbol: Symbol,
     ty: Type,
 }
 
-impl RawVariable {
-    fn new(symbol: Symbol, ty: Type) -> RawVariable {
-        RawVariable {
+impl _Variable {
+    fn new(symbol: Symbol, ty: Type) -> _Variable {
+        _Variable {
             symbol: symbol,
             ty: ty,
         }
     }
 }
 
-impl Identify for RawVariable {
+impl Identify for _Variable {
     fn identify(&self) -> Identifier {
         self.symbolise().identify()
     }
 }
 
-impl Symbolise for RawVariable {
+impl Symbolise for _Variable {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
-impl Typedef for RawVariable {
+impl Typedef for _Variable {
     fn typedef(&self) -> Type {
         self.ty.clone()
     }
@@ -985,23 +1000,44 @@ impl Typedef for RawVariable {
 
 ///
 #[derive(Clone)]
-pub struct VoidExpr {
-    identifier: Identifier,
-}
+pub struct VoidExpr(Object<_VoidExpr>);
 
 impl VoidExpr {
     pub fn new(identifier: Identifier) -> VoidExpr {
-        VoidExpr { identifier: identifier }
+        VoidExpr(object!(_VoidExpr::new(identifier)))
     }
 }
 
 impl Identify for VoidExpr {
     fn identify(&self) -> Identifier {
-        self.identifier.clone()
+        object_proxy![self.0 => identify()]
     }
 }
 
 impl Typedef for VoidExpr {
+    fn typedef(&self) -> Type {
+        object_proxy![self.0 => typedef()]
+    }
+}
+
+#[derive(Clone)]
+struct _VoidExpr {
+    identifier: Identifier,
+}
+
+impl _VoidExpr {
+    pub fn new(identifier: Identifier) -> _VoidExpr {
+        _VoidExpr { identifier: identifier }
+    }
+}
+
+impl Identify for _VoidExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
+impl Typedef for _VoidExpr {
     fn typedef(&self) -> Type {
         Type::Primitive(PrimitiveType::Void)
     }
