@@ -13,7 +13,6 @@ use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 #[macro_use]
 pub mod macros;
 pub mod prelude;
-pub mod visitor;
 
 /// The `Typedef` trait is implemented by nodes that can express some `Type`.
 pub trait Typedef {
@@ -622,14 +621,6 @@ impl Symbolise for _Module {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
-}
-
-/// A `Node` representation any IR object from this IR.
-pub enum Node {
-    Expr(Expr),
-    Decl(Decl),
-    Module(Module),
-    Type(Type),
 }
 
 ///

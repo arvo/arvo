@@ -5,13 +5,14 @@
 //! used, and are not used after they exit scope. At this stage, types have
 //! not necessarily been resolved.
 
-use super::bair::{Object, PrimitiveType};
+pub use super::bair::PrimitiveType;
+
+use super::bair::Object;
 use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
 #[macro_use]
 pub mod macros;
 pub mod prelude;
-pub mod visitor;
 
 /// The `Typedef` trait is implemented by nodes that can express some `Type`.
 pub trait Typedef {
@@ -86,6 +87,10 @@ impl CallExpr {
         CallExpr(object!(_CallExpr::new(identifier, target, arguments)))
     }
 
+    pub fn target(&self) -> Expr {
+        object_proxy![self.0 => target().clone()]
+    }
+
     pub fn arguments(&self) -> Exprs {
         object_proxy![self.0 => arguments().clone()]
     }
@@ -117,6 +122,10 @@ impl _CallExpr {
             target: target,
             arguments: arguments,
         }
+    }
+
+    fn target(&self) -> &Expr {
+        &self.target
     }
 
     fn arguments(&self) -> &Exprs {

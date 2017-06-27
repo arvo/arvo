@@ -64,7 +64,7 @@ macro_rules! type_proxy {
 /// An extern `Function` with a profile that matches the binary operator in
 /// the prelude library.
 #[macro_export]
-macro_rules! bin_fn {
+macro_rules! binary_fn {
     ($op_name: expr, $type_name: expr,  $type_expr: expr) => (
         Function::new(
             // symbol of the function
@@ -81,22 +81,22 @@ macro_rules! bin_fn {
 
 #[macro_export]
 macro_rules! add_fn {
-    ($type_name: expr, $type_expr: expr) => (bin_fn!("add", $type_name, $type_expr))
+    ($type_name: expr, $type_expr: expr) => (binary_fn!("add", $type_name, $type_expr))
 }
 
 #[macro_export]
 macro_rules! div_fn {
-    ($type_name: expr, $type_expr: expr) => (bin_fn!("div", $type_name, $type_expr))
+    ($type_name: expr, $type_expr: expr) => (binary_fn!("div", $type_name, $type_expr))
 }
 
 #[macro_export]
 macro_rules! mul_fn {
-    ($type_name: expr, $type_expr: expr) => (bin_fn!("mul", $type_name, $type_expr))
+    ($type_name: expr, $type_expr: expr) => (binary_fn!("mul", $type_name, $type_expr))
 }
 
 #[macro_export]
 macro_rules! sub_fn {
-    ($type_name: expr, $type_expr: expr) => (bin_fn!("sub", $type_name, $type_expr))
+    ($type_name: expr, $type_expr: expr) => (binary_fn!("sub", $type_name, $type_expr))
 }
 
 /// Create a `Function` that represents an extern concat operator for strings.

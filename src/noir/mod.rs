@@ -15,58 +15,6 @@ use super::identifier::{Identifier, Identify, Id, Symbol, Symbolise};
 pub mod macros;
 pub mod prelude;
 pub mod runtime;
-pub mod visitor;
-
-/// A `Node` representation any IR object from this IR.
-pub enum Node {
-    Expr(Expr),
-    Function(Function),
-    Module(Module),
-    Type(Type),
-    Nil,
-}
-
-impl Default for Node {
-    fn default() -> Node {
-        Node::Nil
-    }
-}
-
-impl From<BlockExpr> for Node {
-    fn from(block_expr: BlockExpr) -> Node {
-        Expr::Block(block_expr).into()
-    }
-}
-
-impl From<CallExpr> for Node {
-    fn from(call_expr: CallExpr) -> Node {
-        Expr::Call(call_expr).into()
-    }
-}
-
-impl From<Expr> for Node {
-    fn from(expr: Expr) -> Node {
-        Node::Expr(expr)
-    }
-}
-
-pub type Nodes = Vec<Node>;
-
-fn into_exprs(nodes: Nodes) -> Exprs {
-    nodes.into_iter().map(|node| Expr::from(node)).collect()
-}
-
-fn into_functions(nodes: Nodes) -> Functions {
-    nodes.into_iter().map(|node| Function::from(node)).collect()
-}
-
-fn into_modules(nodes: Nodes) -> Modules {
-    nodes.into_iter().map(|node| Module::from(node)).collect()
-}
-
-fn into_types(nodes: Nodes) -> Type {
-    nodes.into_iter().map(|node| Type::from(node)).collect()
-}
 
 /// The `Typedef` trait is implemented by nodes that can express some `Type`.
 pub trait Typedef {
@@ -299,15 +247,6 @@ pub enum Expr {
 }
 
 pub type Exprs = Vec<Expr>;
-
-impl From<Node> for Expr {
-    fn from(node: Node) -> Expr {
-        match node {
-            Node::Expr(expr) => expr,
-            _ => panic!("expected Expr"),
-        }
-    }
-}
 
 impl From<BlockExpr> for Expr {
     fn from(block_expr: BlockExpr) -> Expr {
