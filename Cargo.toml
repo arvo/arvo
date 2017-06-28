@@ -4,10 +4,16 @@ version = "0.0.0"
 authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
 
 [lib]
-name = "arvo"
+name = "libarvo"
 path = "src/lib.rs"
 
 [dependencies.getopts]
+version = "*"
+
+[dependencies.lazy_static]
+version = "*"
+
+[dependencies.libc]
 version = "*"
 
 [dependencies.libprelude]
@@ -16,12 +22,6 @@ version = "*"
 
 [dependencies.libruntime]
 path = "src/libruntime"
-version = "*"
-
-[dependencies.lazy_static]
-version = "*"
-
-[dependencies.libc]
 version = "*"
 
 [dependencies.llvm-sys]

@@ -1,6 +1,6 @@
-//! # Normalised Intermediate Representation
+//! # NoIR
 //!
-//! The normalised intermediate representation (NoIR) is the normalised form
+//! The normalised intermediate representation ([NoIR](libarvo.noir)) is the normalised form
 //! of the AIR. NoIR is produced by normalising an AIR that has been through
 //! all necessary compilation passes, and so by the time a program has reached
 //! this stage of compilation, it is valid. Optimisation passes, and code
@@ -237,6 +237,8 @@ pub enum Expr {
     Block(BlockExpr),
     Call(CallExpr),
     Def(DefExpr),
+    For(ForExpr),
+    If(IfExpr),
     Item(ItemExpr),
     Literal(LiteralExpr),
     Process(ProcessExpr),
@@ -287,6 +289,20 @@ impl From<ProcessJoinExpr> for Expr {
 impl From<VoidExpr> for Expr {
     fn from(void_expr: VoidExpr) -> Expr {
         Expr::Void(void_expr)
+    }
+}
+
+///
+#[derive(Clone)]
+pub struct ForExpr(Object<_ForExpr>);
+
+impl ForExpr {
+    pub fn new(identifier: Identifier,
+               variables: Variables,
+               iterand: Expr,
+               iteration: BlockExpr)
+               -> ForExpr {
+        ForExpr(object!(_ForExpr::new(identifier, variables, iterand, iteration)))
     }
 }
 
@@ -530,7 +546,39 @@ impl Typedef for _LambdaType {
 
 ///
 #[derive(Clone)]
-pub enum LiteralExpr {
+pub struct LiteralExpr(Object<_LiteralExpr>);
+
+impl LiteralExpr {
+    pub fn new(identifier: Identifier, literal: Literal) -> LiteralExpr {
+        LiteralExpr(object!(_LiteralExpr::new(identifier, literal)))
+    }
+
+    pub fn literal(&self) -> Literal {
+        object_proxy![self.0 => literal().clone()]
+    }
+}
+
+#[derive(Clone)]
+struct _LiteralExpr {
+    identifier: Identifier,
+    literal: Literal,
+}
+
+impl _LiteralExpr {
+    fn new(identifier: Identifier, literal: Literal) -> _LiteralExpr {
+        _LiteralExpr {
+            identifier: identifier,
+            literal: literal,
+        }
+    }
+
+    fn literal(&self) -> &Literal {
+        &self.literal
+    }
+}
+
+#[derive(Clone)]
+pub enum Literal {
     Bool(bool),
     Char(char),
     F32(f32),
@@ -640,10 +688,7 @@ impl ProcessExpr {
                prelude_variables: Variables,
                body: Exprs)
                -> ProcessExpr {
-        ProcessExpr(object!(_ProcessExpr::new(identifier,
-                                                prelude_exprs,
-                                                prelude_variables,
-                                                body)))
+        ProcessExpr(object!(_ProcessExpr::new(identifier, prelude_exprs, prelude_variables, body)))
     }
 
     pub fn as_function(&self) -> Function {

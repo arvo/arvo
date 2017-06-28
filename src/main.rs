@@ -1,6 +1,9 @@
 //! # Arvo
 
+extern crate arvo;
 extern crate getopts;
+
+pub use arvo;
 
 use getopts::Options;
 use std::env;

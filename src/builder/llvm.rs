@@ -1,29 +1,96 @@
 extern crate llvm_sys;
 
-// use self::llvm_sys::core::*;
-// use self::llvm_sys::prelude::*;
-// use self::llvm_sys::target::*;
+use self::llvm_sys::core::*;
+use self::llvm_sys::prelude::*;
+use self::llvm_sys::target::*;
 
-// use id::{Identifier, Identify, Name, Symbol, Symbolise};
-// use noir::*;
-// use noir::prelude::*;
-// use noir::runtime::*;
-// use noir::visitor::*;
+use super::super::identifier::{Identifier, Identify, Name, Symbol, Symbolise};
+use super::super::noir::*;
+use super::super::noir::prelude::*;
+use super::super::noir::runtime::*;
 
-// use std::collections::HashMap;
-// use std::ffi::{CStr, CString};
+use std::collections::HashMap;
+use std::ffi::{CStr, CString};
 // use std::io::Write;
 // use std::process::{Command, Stdio};
 // use std::ptr::null_mut;
 
-// pub struct LLVMBuilder {
-//     name: String,
-//     context: LLVMContextRef,
-//     module: LLVMModuleRef,
-//     builder: LLVMBuilderRef,
-//     nodes: HashMap<Identifier, LLVMNode>,
-//     noir_context: Context,
-// }
+pub struct LLVMBuilder {
+    llvm_context: LLVMContextRef,
+    llvm_module: LLVMModuleRef,
+    llvm_builder: LLVMBuilderRef,
+    name: String,
+    context: Context,
+    nodes: HashMap<Identifier, LLVMNode>,
+}
+
+impl LLVMBuilder {
+
+    pub fn codegen_bool_type(&mut self) -> LLVMTypeRef {
+        unsafe { LLVMNode::from(LLVMInt1Type()) }
+    }
+
+    pub fn codegen_literal_expr(&mut self, literal_expr: LiteralExpr) -> LLVMValueRef {
+        unsafe {
+            match literal_expr.item() {
+                Literal::Bool(value) => {
+                    if value {
+                        LLVMConstInt(self.codegen_bool_type(), 1, 0)
+                    } else {
+                        LLVMConstInt(self.codegen_bool_type(), 0, 0)
+                    }
+                }
+                Literal::Char(value) => LLVMConstInt(self.codegen_char_type(), value as u64, 0),
+                Literal::F32(value) => LLVMConstReal(self.codegen_f32_type(), value as f64),
+                Literal::F64(value) => LLVMConstReal(self.codegen_f64_type(), value as f64),
+                Literal::I8(value) => LLVMConstInt(self.codegen_i8_type(), value as u64, 0),
+                Literal::I16(value) => LLVMConstInt(self.codegen_i16_type(), value as u64, 0),
+                Literal::I32(value) => LLVMConstInt(self.codegen_i32_type(), value as u64, 0),
+                Literal::I64(value) => LLVMConstInt(self.codegen_i64_type(), value as u64, 0),
+                Literal::Str(value) => {
+                    let string = CString::new(value.clone()).unwrap();
+                    let string_bytes = string.as_bytes_with_nul();
+                    let llvm_string = llvm_string(value.clone());
+                    let llvm_string_global = LLVMBuildGlobalStringPtr(self.builder,
+                                                                      string_bytes.as_ptr() as
+                                                                      *const _,
+                                                                      llvm_string.as_ptr());
+                    LLVMConstGEP(llvm_string_global,
+                                 vec![LLVMConstInt(LLVMInt32Type(), 0, 0)].as_mut_ptr(),
+                                 1)
+                }
+                Literal::U8(value) => LLVMConstInt(self.codegen_u8_type(), value as u64, 0),
+                Literal::U16(value) => LLVMConstInt(self.codegen_u16_type(), value as u64, 0),
+                Literal::U32(value) => LLVMConstInt(self.codegen_u32_type(), value as u64, 0),
+                Literal::U64(value) => LLVMConstInt(self.codegen_u64_type(), value as u64, 0),
+                Literal::USize(value) => LLVMConstInt(self.codegen_usize_type(), value as u64, 0),
+            }
+        }
+    }
+
+    fn codegen_u8_type(&mut self) -> LLVMTypeRef {
+        unsafe { LLVMInt8Type() }
+    }
+
+    fn codegen_u16_type(&mut self) -> LLVMTypeRef {
+        unsafe { LLVMInt16Type() }
+    }
+
+    fn codegen_u32_type(&mut self) -> LLVMTypeRef {
+        unsafe { LLVMInt32Type() }
+    }
+
+    fn codegen_u64_type(&mut self) -> LLVMTypeRef {
+        unsafe { LLVMInt64Type() }
+    }
+
+    fn codegen_usize_type(&mut self) -> LLVMTypeRef {
+        unsafe {
+            let llvm_ptr_size = LLVMPointerSize(LLVMGetModuleDataLayout(self.module));
+            LLVMIntType(llvm_ptr_size)
+        }
+    }
+}
 
 // impl LLVMBuilder {
 //     /// Create a new `LLVMBuilder`.
@@ -657,54 +724,55 @@ extern crate llvm_sys;
 //     }
 // }
 
-// #[derive(Clone)]
-// pub enum LLVMNode {
-//     Nil,
-//     Value(LLVMValueRef),
-//     Type(LLVMTypeRef),
-// }
+///
+#[derive(Clone)]
+pub enum LLVMNode {
+    Type(LLVMTypeRef),
+    Value(LLVMValueRef),
+    Nil,
+}
 
-// impl Default for LLVMNode {
-//     fn default() -> LLVMNode {
-//         LLVMNode::Nil
-//     }
-// }
+impl Default for LLVMNode {
+    fn default() -> LLVMNode {
+        LLVMNode::Nil
+    }
+}
 
-// impl From<LLVMTypeRef> for LLVMNode {
-//     fn from(ty: LLVMTypeRef) -> LLVMNode {
-//         LLVMNode::Type(ty)
-//     }
-// }
+impl From<LLVMTypeRef> for LLVMNode {
+    fn from(ty: LLVMTypeRef) -> LLVMNode {
+        LLVMNode::Type(ty)
+    }
+}
 
-// impl From<LLVMValueRef> for LLVMNode {
-//     fn from(value: LLVMValueRef) -> LLVMNode {
-//         LLVMNode::Value(value)
-//     }
-// }
+impl From<LLVMValueRef> for LLVMNode {
+    fn from(value: LLVMValueRef) -> LLVMNode {
+        LLVMNode::Value(value)
+    }
+}
 
-// impl From<LLVMNode> for LLVMTypeRef {
-//     fn from(node: LLVMNode) -> LLVMTypeRef {
-//         match node {
-//             LLVMNode::Nil => panic!("expected LLVMNode::Type got LLVMNode::Nil"),
-//             LLVMNode::Type(ty) => ty,
-//             LLVMNode::Value(..) => panic!("expected LLVMNode::Type got LLVMNode::Value"),
-//         }
-//     }
-// }
+impl From<LLVMNode> for LLVMTypeRef {
+    fn from(node: LLVMNode) -> LLVMTypeRef {
+        match node {
+            LLVMNode::Nil => panic!("expected LLVMNode::Type got LLVMNode::Nil"),
+            LLVMNode::Type(ty) => ty,
+            LLVMNode::Value(..) => panic!("expected LLVMNode::Type got LLVMNode::Value"),
+        }
+    }
+}
 
-// impl From<LLVMNode> for LLVMValueRef {
-//     fn from(node: LLVMNode) -> LLVMValueRef {
-//         match node {
-//             LLVMNode::Nil => panic!("expected LLVMNode::Value got LLVMNode::Nil"),
-//             LLVMNode::Type(..) => panic!("expected LLVMNode::Value got LLVMNode::Type"),
-//             LLVMNode::Value(value) => value,
-//         }
-//     }
-// }
+impl From<LLVMNode> for LLVMValueRef {
+    fn from(node: LLVMNode) -> LLVMValueRef {
+        match node {
+            LLVMNode::Nil => panic!("expected LLVMNode::Value got LLVMNode::Nil"),
+            LLVMNode::Type(..) => panic!("expected LLVMNode::Value got LLVMNode::Type"),
+            LLVMNode::Value(value) => value,
+        }
+    }
+}
 
-// fn llvm_string<S: Into<String>>(string: S) -> CString {
-//     CString::new(string.into()).unwrap()
-// }
+fn llvm_string<S: Into<String>>(string: S) -> CString {
+    CString::new(string.into()).unwrap()
+}
 
 // fn llvm_dump_module(module: LLVMModuleRef) {
 //     unsafe {
