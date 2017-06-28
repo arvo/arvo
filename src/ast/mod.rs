@@ -22,56 +22,39 @@ pub trait Typedef {
 /// A `BlockExpr` contains a set of `Exprs` that will be evaluated in a
 /// non-deterministic order. It also contains a return `Expr`.
 #[derive(Clone)]
-pub struct BlockExpr(Object<_BlockExpr>);
-
-impl BlockExpr {
-    pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
-        BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
-    }
-}
-
-impl Identify for BlockExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Typedef for BlockExpr {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => ret().typedef()]
-    }
-}
-
-#[derive(Clone)]
-struct _BlockExpr {
+pub struct BlockExpr {
     identifier: Identifier,
     body: Exprs,
     ret: Expr,
 }
 
-impl _BlockExpr {
-    fn new(identifier: Identifier, body: Exprs, ret: Expr) -> _BlockExpr {
-        _BlockExpr {
+impl BlockExpr {
+    pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
+        BlockExpr {
             identifier: identifier,
             body: body,
             ret: ret,
         }
     }
 
-    fn ret(&self) -> &Expr {
+    pub fn body(&self) -> &Exprs {
+        &self.body
+    }
+
+    pub fn ret(&self) -> &Expr {
         &self.ret
     }
 }
 
-impl Identify for _BlockExpr {
+impl Identify for BlockExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for _BlockExpr {
+impl Typedef for BlockExpr {
     fn typedef(&self) -> Type {
-        self.ret.typedef()
+        self.ret().typedef()
     }
 }
 
@@ -80,142 +63,86 @@ impl Typedef for _BlockExpr {
 /// call targets. It contains a set of argument `Exprs` that will be passed to
 /// the function call.
 #[derive(Clone)]
-pub struct CallExpr(Object<_CallExpr>);
-
-impl CallExpr {
-    pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
-        CallExpr(object!(_CallExpr::new(identifier, target, arguments)))
-    }
-}
-
-impl Identify for CallExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Typedef for CallExpr {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => typedef()]
-    }
-}
-
-#[derive(Clone)]
-struct _CallExpr {
+pub struct CallExpr {
     identifier: Identifier,
     target: Expr,
     arguments: Exprs,
 }
 
-impl _CallExpr {
-    fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> _CallExpr {
-        _CallExpr {
+impl CallExpr {
+    pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
+        CallExpr {
             identifier: identifier,
             target: target,
             arguments: arguments,
         }
     }
+
+    pub fn target(&self) -> &Expr {
+        &self.target
+    }
+
+    pub fn arguments(&self) -> &Exprs {
+        &self.arguments
+    }
 }
 
-impl Identify for _CallExpr {
+impl Identify for CallExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for _CallExpr {
+impl Typedef for CallExpr {
     fn typedef(&self) -> Type {
-        if let Type::Lambda(lambda_ty) = self.target.typedef() {
-            return lambda_ty.ret();
+        if let Type::Lambda(lambda_type) = self.target().typedef() {
+            return lambda_type.ret();
         }
         unimplemented!()
     }
 }
 
-///
+/// A `DefExpr` is an expression that defines a new variable.
 #[derive(Clone)]
-pub enum Decl {
-    Function(Function),
-    Module(Module),
-    Type(Type),
-}
-
-pub type Decls = Vec<Decl>;
-
-///
-#[derive(Clone)]
-pub struct DefExpr(Object<_DefExpr>);
-
-impl DefExpr {
-    pub fn new(identifier: Identifier, variable: Variable, definition: Expr) -> DefExpr {
-        DefExpr(object!(_DefExpr::new(identifier, variable, definition)))
-    }
-}
-
-impl Identify for DefExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Typedef for DefExpr {
-    fn typedef(&self) -> Type {
-        Type::Primitive(PrimitiveType::Void)
-    }
-}
-
-#[derive(Clone)]
-struct _DefExpr {
+pub struct DefExpr {
     identifier: Identifier,
     variable: Variable,
     definition: Expr,
 }
 
-impl _DefExpr {
-    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> _DefExpr {
-        _DefExpr {
+impl DefExpr {
+    pub fn new(identifier: Identifier, variable: Variable, definition: Expr) -> DefExpr {
+        DefExpr {
             identifier: identifier,
             variable: variable,
             definition: definition,
         }
     }
+
+    /// Returns a reference to the Variable that is defined.
+    pub fn variable(&self) -> &Variable {
+        &self.variable
+    }
+
+    /// Returns a reference to the Expr that is used to define the variable.
+    pub fn definition(&self) -> &Expr {
+        &self.definition
+    }
 }
 
-impl Identify for _DefExpr {
+impl Identify for DefExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-///
-#[derive(Clone)]
-pub enum Expr {
-    Block(BlockExpr),
-    Call(CallExpr),
-    Def(DefExpr),
-    For(ForExpr),
-    If(IfExpr),
-    Item(ItemExpr),
-    Literal(LiteralExpr),
-    Ref(RefExpr),
-    Struct(StructExpr),
-    StructElement(StructElementExpr),
-    Void(VoidExpr),
-}
+impl Typedef for DefExpr {
 
-impl Identify for Expr {
-    fn identify(&self) -> Identifier {
-        expr_proxy![*self => identify()]
-    }
-}
-
-impl Typedef for Expr {
+    /// A DefExpr will always return the PrimitiveType::Void type.
     fn typedef(&self) -> Type {
-        expr_proxy![*self => typedef()]
+        Type::Primitive(PrimitiveType::Void)
     }
 }
-
-pub type Exprs = Vec<Expr>;
 
 ///
 #[derive(Clone)]
@@ -1033,3 +960,43 @@ impl Typedef for _VoidExpr {
         Type::Primitive(PrimitiveType::Void)
     }
 }
+
+///
+#[derive(Clone)]
+pub enum Decl {
+    Function(Function),
+    Module(Module),
+    Type(Type),
+}
+
+pub type Decls = Vec<Decl>;
+
+///
+#[derive(Clone)]
+pub enum Expr {
+    Block(BlockExpr),
+    Call(CallExpr),
+    Def(DefExpr),
+    For(ForExpr),
+    If(IfExpr),
+    Item(ItemExpr),
+    Literal(LiteralExpr),
+    Ref(RefExpr),
+    Struct(StructExpr),
+    StructElement(StructElementExpr),
+    Void(VoidExpr),
+}
+
+impl Identify for Expr {
+    fn identify(&self) -> Identifier {
+        expr_proxy![*self => identify()]
+    }
+}
+
+impl Typedef for Expr {
+    fn typedef(&self) -> Type {
+        expr_proxy![*self => typedef()]
+    }
+}
+
+pub type Exprs = Vec<Expr>;
