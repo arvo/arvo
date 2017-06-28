@@ -1,9 +1,8 @@
-
 /// Create a new `Object`. This needs to be a macro because `Object` is not an
 /// alias type, as such it cannot have methods.
 #[macro_export]
 macro_rules! object {
-    ($inner: expr) => (::std::sync::Arc::new(::std::sync::RwLock::new(::std::cell::RefCell::new($inner))))
+    ($inner: expr) => (::std::sync::Arc::new(::std::sync::RwLock::new(::std::cell::RefCell::new($inner))));
 }
 
 /// Send a message to an `Object`. An immutable message cannot result in the 

@@ -26,8 +26,8 @@ pub trait Typedef {
 pub struct BlockExpr(Object<_BlockExpr>);
 
 impl BlockExpr {
-    pub fn new(identifier: Identifier, ret: Expr, body: Exprs, epilogue: Exprs) -> BlockExpr {
-        BlockExpr(object!(_BlockExpr::new(identifier, ret, body, epilogue)))
+    pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
+        BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
     }
 
     pub fn ret(&self) -> Expr {
@@ -43,16 +43,6 @@ impl BlockExpr {
     pub fn num_body_exprs(&self) -> usize {
         object_proxy![self.0 => body().len()]
     }
-
-    pub fn for_epilogue_exprs<T, F: FnMut(&mut Expr) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => epilogue_mut().iter_mut() loop expr {
-            f(expr);
-        }]
-    }
-
-    pub fn num_epilogue_exprs(&self) -> usize {
-        object_proxy![self.0 => epilogue().len()]
-    }
 }
 
 impl Identify for BlockExpr {
@@ -64,23 +54,17 @@ impl Identify for BlockExpr {
 #[derive(Clone)]
 struct _BlockExpr {
     identifier: Identifier,
-    ret: Expr,
     body: Exprs,
-    epilogue: Exprs,
+    ret: Expr,
 }
 
 impl _BlockExpr {
-    fn new(identifier: Identifier, ret: Expr, body: Exprs, epilogue: Exprs) -> _BlockExpr {
+    fn new(identifier: Identifier, body: Exprs, ret: Expr) -> _BlockExpr {
         _BlockExpr {
             identifier: identifier,
-            ret: ret,
             body: body,
-            epilogue: epilogue,
+            ret: ret,
         }
-    }
-
-    fn ret(&self) -> &Expr {
-        &self.ret
     }
 
     fn body(&self) -> &Exprs {
@@ -91,12 +75,8 @@ impl _BlockExpr {
         &mut self.body
     }
 
-    fn epilogue(&self) -> &Exprs {
-        &self.epilogue
-    }
-
-    fn epilogue_mut(&mut self) -> &mut Exprs {
-        &mut self.epilogue
+    fn ret(&self) -> &Expr {
+        &self.ret
     }
 }
 
@@ -304,6 +284,13 @@ impl ForExpr {
                -> ForExpr {
         ForExpr(object!(_ForExpr::new(identifier, variables, iterand, iteration)))
     }
+}
+
+#[derive(Clone)]
+struct _ForExpr {
+    identifier: Identifier,
+    variables: Variables,
+    
 }
 
 ///

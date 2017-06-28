@@ -28,6 +28,14 @@ impl BlockExpr {
     pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
         BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
     }
+
+    pub fn body(&self) -> Exprs {
+        object_proxy![self.0 => body().clone()]
+    }
+
+    pub fn ret(&self) -> Expr {
+        object_proxy![self.0 => ret().clone()]
+    }
 }
 
 impl Identify for BlockExpr {
@@ -56,6 +64,10 @@ impl _BlockExpr {
             body: body,
             ret: ret,
         }
+    }
+
+    fn body(&self) -> &Exprs {
+        &self.body
     }
 
     fn ret(&self) -> &Expr {
