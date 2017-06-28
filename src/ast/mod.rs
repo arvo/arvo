@@ -25,7 +25,7 @@ pub trait Typedef {
 pub struct BlockExpr {
     identifier: Identifier,
     body: Exprs,
-    ret: Expr,
+    ret: Box<Expr>,
 }
 
 impl BlockExpr {
@@ -65,7 +65,7 @@ impl Typedef for BlockExpr {
 #[derive(Clone)]
 pub struct CallExpr {
     identifier: Identifier,
-    target: Expr,
+    target: Box<Expr>,
     arguments: Exprs,
 }
 
@@ -107,7 +107,7 @@ impl Typedef for CallExpr {
 pub struct DefExpr {
     identifier: Identifier,
     variable: Variable,
-    definition: Expr,
+    definition: Box<Expr>,
 }
 
 impl DefExpr {

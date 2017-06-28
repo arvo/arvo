@@ -1,6 +1,16 @@
 
 /// Send a message to an `Item`. An immutable message cannot result in the
 /// modification of the `Item`.
+macro_rules! expr_proxy {
+    ($expr: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $expr {
+        Expr::Block(ref expr) => expr.$($method($($arg),*)).+,
+        Expr::Call(ref expr) => expr.$($method($($arg),*)).+,
+        _ => unimplemented!()
+    });
+}
+
+/// Send a message to an `Item`. An immutable message cannot result in the
+/// modification of the `Item`.
 macro_rules! item_proxy {
     ($item: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $item {
         Item::Function(ref item) => item.$($method($($arg),*)).+,
@@ -25,10 +35,12 @@ macro_rules! bin_fn {
             Symbol::new(format!("__libprelude__{}_{}", $op_name, $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr), Variable::new(Symbol::new("y"), $type_expr)],
+            // type profile of the function
+            $type_expr,
             // definition of the function
             None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr, $type_expr], $type_expr)))
+        )
+    )
 }
 
 macro_rules! add_fn {
@@ -63,10 +75,12 @@ macro_rules! concat_string_fn {
             Symbol::new(format!("__libprelude__concat_string_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
+            // type profile of the function
+            PrimitiveType::Str.into(),
             // definition of the function
             None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr], Type::Primitive(PrimitiveType::Str))))
+        )
+    )
 }
 
 /// Create a `Function` that represents an extern write function.
@@ -85,10 +99,12 @@ macro_rules! write_fn {
             Symbol::new(format!("__libprelude__write_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
+            // type profile of the function
+            PrimitiveType::Void.into(),
             // definition of the function
             None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr], Type::Primitive(PrimitiveType::Void))))
+        )
+    )
 }
 
 /// Create a `Function` that represents an extern writeln function.
@@ -107,8 +123,10 @@ macro_rules! writeln_fn {
             Symbol::new(format!("__libprelude__writeln_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
+            // type profile of the function
+            PrimitiveType::Void.into(),
             // definition of the function
             None,
-            // type profile of the function
-            LambdaType::new(vec![$type_expr], Type::Primitive(PrimitiveType::Void))))
+        )
+    )
 }

@@ -22,54 +22,40 @@ pub trait Typedef {
 /// A `BlockExpr` contains a set of `Exprs` that will be evaluated in a
 /// non-deterministic order. It also contains a return `Expr`.
 #[derive(Clone)]
-pub struct BlockExpr(Object<_BlockExpr>);
-
-impl BlockExpr {
-    pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
-        BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
-    }
-}
-
-impl Identify for BlockExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Typedef for BlockExpr {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => ret().typedef()]
-    }
-}
-
-#[derive(Clone)]
-struct _BlockExpr {
+pub struct BlockExpr {
     identifier: Identifier,
     body: Exprs,
     ret: Expr,
 }
 
-impl _BlockExpr {
-    fn new(identifier: Identifier, body: Exprs, ret: Expr) -> _BlockExpr {
-        _BlockExpr {
+impl BlockExpr {
+    pub fn new<Body, Return>(identifier: Identifier, body: Body, ret: Return) -> BlockExpr 
+        where Body: Into<Exprs>,
+              Return: Into<Expr>
+    {
+        BlockExpr {
             identifier: identifier,
-            body: body,
-            ret: ret,
+            body: body.into(),
+            ret: ret.into(),
         }
     }
 
-    fn ret(&self) -> &Expr {
+    pub fn body(&self) -> &Exprs {
+        &self.body
+    }
+
+    pub fn ret(&self) -> &Expr {
         &self.ret
     }
 }
 
-impl Identify for _BlockExpr {
+impl Identify for BlockExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
-impl Typedef for _BlockExpr {
+impl Typedef for BlockExpr {
     fn typedef(&self) -> Type {
         self.ret.typedef()
     }
@@ -196,7 +182,7 @@ impl Identify for _DefExpr {
 ///
 #[derive(Clone)]
 pub enum Expr {
-    Block(BlockExpr),
+    Block(Box<BlockExpr>),
     Call(CallExpr),
     Def(DefExpr),
     For(ForExpr),
@@ -280,66 +266,49 @@ impl Identify for _ForExpr {
 
 ///
 #[derive(Clone)]
-pub struct Function(Object<_Function>);
-
-pub type Functions = Vec<Function>;
-
-impl Function {
-    pub fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> Function {
-        Function(object!(_Function::new(symbol, formals, ret, body)))
-    }
-}
-
-impl Identify for Function {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Symbolise for Function {
-    fn symbolise(&self) -> Symbol {
-        object_proxy![self.0 => symbolise()]
-    }
-}
-
-impl Typedef for Function {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => typedef()]
-    }
-}
-
-#[derive(Clone)]
-struct _Function {
+pub struct Function {
     symbol: Symbol,
     formals: Variables,
     ret: Type,
     body: Option<Expr>,
 }
 
-impl _Function {
-    fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> _Function {
-        _Function {
+impl Function {
+    pub fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<Expr>) -> Function {
+        Function {
             symbol: symbol,
             formals: formals,
             ret: ret,
             body: body,
         }
     }
+
+    pub fn formals(&self) -> &Variables {
+        &self.formals
+    }
+
+    pub fn ret(&self) -> &Type {
+        &self.ret
+    }
+
+    pub fn body(&self) -> &Option<Expr> {
+        &self.body
+    }
 }
 
-impl Identify for _Function {
+impl Identify for Function {
     fn identify(&self) -> Identifier {
         self.symbolise().identify()
     }
 }
 
-impl Symbolise for _Function {
+impl Symbolise for Function {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
-impl Typedef for _Function {
+impl Typedef for Function {
     fn typedef(&self) -> Type {
         Type::Lambda(LambdaType::new(self.formals
                                          .iter()
@@ -348,6 +317,9 @@ impl Typedef for _Function {
                                      self.ret.clone()))
     }
 }
+
+///
+pub type Functions = Vec<Function>;
 
 ///
 #[derive(Clone)]
@@ -477,33 +449,27 @@ pub enum Item {
 
 ///
 #[derive(Clone)]
-pub struct LambdaType(Object<_LambdaType>);
-
-impl LambdaType {
-    pub fn new(formals: Types, ret: Type) -> LambdaType {
-        LambdaType(object!(_LambdaType::new(formals, ret)))
-    }
-
-    pub fn ret(&self) -> Type {
-        object_proxy![self.0 => ret().clone()]
-    }
-}
-
-#[derive(Clone)]
-struct _LambdaType {
+pub struct LambdaType {
     formals: Types,
     ret: Type,
 }
 
-impl _LambdaType {
-    fn new(formals: Types, ret: Type) -> _LambdaType {
-        _LambdaType {
-            formals: formals,
-            ret: ret,
+impl LambdaType {
+    pub fn new<Formals, Return>(formals: Formals, ret: Return) -> LambdaType 
+        where Formals: Into<Types>,
+              Return: Into<Type>,
+    {
+        LambdaType {
+            formals: formals.into(),
+            ret: ret.into(),
         }
     }
 
-    fn ret(&self) -> &Type {
+    pub fn formals(&self) -> &Types {
+        &self.formals
+    }
+
+    pub fn ret(&self) -> &Type {
         &self.ret
     }
 }
@@ -854,7 +820,7 @@ impl _StructType {
 ///
 #[derive(Clone)]
 pub enum Type {
-    Lambda(LambdaType),
+    Lambda(Box<LambdaType>),
     Primitive(PrimitiveType),
     Ref(RefType),
     Struct(StructType),

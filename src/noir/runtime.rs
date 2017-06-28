@@ -8,29 +8,29 @@ pub struct Runtime {
 impl Runtime {
     pub fn new() -> Runtime {
         Runtime {
-            process_fn:
-                Function::new(// symbol of the function
-                              Symbol::new("__libruntime__process"),
-                              // formals of the function
-                              vec![Variable::new(Symbol::new("f"),
-                                                 Type::Lambda(LambdaType::new(Types::new(),
-                                                                              Type::Primitive(PrimitiveType::Void))))],
-                              // definition of the function
-                              None,
-                              // type profile of the function
-                              LambdaType::new(vec![Type::Lambda(LambdaType::new(Types::new(),
-                                                                                Type::Primitive(PrimitiveType::Void)))],
-                                              Type::Ptr(PtrType::new(Type::Primitive(PrimitiveType::I8))))),
-            process_join_fn:
-                Function::new(// symbol of the function
-                              Symbol::new("__libruntime__process_join"),
-                              // formals of the function
-                              vec![Variable::new(Symbol::new("process"),
-                                                 Type::Ptr(PtrType::new(Type::Primitive(PrimitiveType::I8))))],
-                              // definition of the function
-                              None,
-                              // type profile of the function
-                              LambdaType::new(vec![Type::Ptr(PtrType::new(Type::Primitive(PrimitiveType::I8)))], Type::Primitive(PrimitiveType::Void))),
+            process_fn: Function::new(// symbol of the function
+                                      Symbol::new("__libruntime__process"),
+                                      // formals of the function
+                                      vec![Variable::new(Symbol::new("f"),
+                                                         LambdaType::new(vec![],
+                                                                         PrimitiveType::Void
+                                                                             .into())
+                                                                 .into())],
+                                      // type profile of the function
+                                      PtrType::new(PrimitiveType::I8.into()).into(),
+                                      // definition of the function
+                                      None),
+            process_join_fn: Function::new(// symbol of the function
+                                           Symbol::new("__libruntime__process_join"),
+                                           // formals of the function
+                                           vec![Variable::new(Symbol::new("process"),
+                                                              PtrType::new(PrimitiveType::I8
+                                                                               .into())
+                                                                      .into())],
+                                           // type profile of the function
+                                           PrimitiveType::Void.into(),
+                                           // definition of the function
+                                           None),
         }
     }
 
