@@ -13,7 +13,6 @@ use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 pub mod macros;
 pub mod context;
 pub mod prelude;
-pub mod runtime;
 
 /// The `Typedef` trait is implemented by nodes that can express some `Type`.
 pub trait Typedef {
@@ -24,13 +23,13 @@ pub trait Typedef {
 #[derive(Clone)]
 pub struct AssignExpr {
     identifier: Identifier,
-    lhs: RefExpr,
+    lhs: Expr,
     rhs: Expr,
 }
 
 impl AssignExpr {
     pub fn new<LHS, RHS>(identifier: Identifier, lhs: LHS, rhs: RHS) -> AssignExpr
-        where LHS: Into<RefExpr>,
+        where LHS: Into<Expr>,
               RHS: Into<Expr>
     {
         AssignExpr {
@@ -40,7 +39,7 @@ impl AssignExpr {
         }
     }
 
-    pub fn lhs(&self) -> &RefExpr {
+    pub fn lhs(&self) -> &Expr {
         &self.lhs
     }
 
@@ -169,7 +168,7 @@ impl Typedef for CallExpr {
 pub struct DefExpr {
     identifier: Identifier,
     variable: Variable,
-    definition: Box<AssignExpr>,
+    definition: Expr,
 }
 
 impl DefExpr {
@@ -178,7 +177,7 @@ impl DefExpr {
                                 definition: Definition)
                                 -> DefExpr
         where Var: Into<Variable>,
-              Definition: Into<Box<AssignExpr>>
+              Definition: Into<Expr>
     {
         DefExpr {
             identifier: identifier,
@@ -191,7 +190,7 @@ impl DefExpr {
         &self.variable
     }
 
-    pub fn definition(&self) -> &Box<AssignExpr> {
+    pub fn definition(&self) -> &Expr {
         &self.definition
     }
 }
@@ -291,7 +290,7 @@ pub struct Function {
     symbol: Symbol,
     formals: Variables,
     ret: Type,
-    body: Box<Option<BlockExpr>>,
+    body: Box<Option<Expr>>,
 }
 
 impl Function {
@@ -302,7 +301,7 @@ impl Function {
                                    -> Function
         where Vars: Into<Variables>,
               Return: Into<Type>,
-              Body: Into<Box<Option<BlockExpr>>>
+              Body: Into<Box<Option<Expr>>>
     {
         Function {
             symbol: symbol,
@@ -320,7 +319,7 @@ impl Function {
         &self.ret
     }
 
-    pub fn body(&self) -> &Box<Option<BlockExpr>> {
+    pub fn body(&self) -> &Box<Option<Expr>> {
         &self.body
     }
 }
@@ -637,56 +636,6 @@ pub type ModuleTable = HashMap<Identifier, Module>;
 
 ///
 #[derive(Clone)]
-pub struct ProcessExpr {
-    identifier: Identifier,
-    body: Box<BlockExpr>,
-}
-
-impl ProcessExpr {
-    pub fn new<Body>(identifier: Identifier, body: Body) -> ProcessExpr
-        where Body: Into<Box<BlockExpr>>
-    {
-        ProcessExpr {
-            identifier: identifier,
-            body: body.into(),
-        }
-    }
-
-    pub fn body(&self) -> &Box<BlockExpr> {
-        &self.body
-    }
-}
-
-impl Identify for ProcessExpr {
-    fn identify(&self) -> Identifier {
-        self.identifier.clone()
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct ProcessJoinExpr {
-    identifier: Identifier,
-    process: ProcessExpr,
-}
-
-impl ProcessJoinExpr {
-    pub fn new<Process>(identifier: Identifier, process: Process) -> ProcessJoinExpr
-        where Process: Into<ProcessExpr>
-    {
-        ProcessJoinExpr {
-            identifier: identifier,
-            process: process.into(),
-        }
-    }
-
-    pub fn process(&self) -> &ProcessExpr {
-        &self.process
-    }
-}
-
-///
-#[derive(Clone)]
 pub struct PtrType {
     inner: Type,
 }
@@ -760,7 +709,7 @@ impl Identify for RefExpr {
 
 impl Typedef for RefExpr {
     fn typedef(&self) -> Type {
-        Type::from(RefType::new(self.inner.typedef(), self.mutable))
+        RefType::new(self.inner.typedef(), self.mutable).into()
     }
 }
 
@@ -976,8 +925,6 @@ pub enum Expr {
     If(Box<IfExpr>),
     Item(Box<ItemExpr>),
     Literal(Box<LiteralExpr>),
-    Process(Box<ProcessExpr>),
-    ProcessJoin(Box<ProcessJoinExpr>),
     Ref(Box<RefExpr>),
     Struct(Box<StructExpr>),
     StructAccess(Box<StructAccessExpr>),
@@ -1044,18 +991,6 @@ impl From<LiteralExpr> for Expr {
     }
 }
 
-impl From<ProcessExpr> for Expr {
-    fn from(expr: ProcessExpr) -> Expr {
-        Expr::Process(expr.into())
-    }
-}
-
-impl From<ProcessJoinExpr> for Expr {
-    fn from(expr: ProcessJoinExpr) -> Expr {
-        Expr::ProcessJoin(expr.into())
-    }
-}
-
 impl From<RefExpr> for Expr {
     fn from(expr: RefExpr) -> Expr {
         Expr::Ref(expr.into())
@@ -1092,11 +1027,18 @@ pub type Exprs = Vec<Expr>;
 ///
 #[derive(Clone)]
 pub enum Type {
+    Generic(Box<GenericType>),
     Lambda(Box<LambdaType>),
     Primitive(Box<PrimitiveType>),
     Ptr(Box<PtrType>),
     Ref(Box<RefType>),
     Struct(Box<StructType>),
+}
+
+impl From<GenericType> for Type {
+    fn from(ty: GenericType) -> Type {
+        Type::Generic(ty.into())
+    }
 }
 
 impl From<LambdaType> for Type {
