@@ -4,7 +4,7 @@
 
 The Arvo programming language.
 
-## Requirements for building the compiler
+## Requirements
 
 ### Rust
 
