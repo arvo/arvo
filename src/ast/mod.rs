@@ -144,6 +144,7 @@ pub struct Unresolved {
 #[derive(Clone)]
 pub struct UnresolvedType {
     symbol: Symbol,
+    generics: Types,
 }
 
 ///
