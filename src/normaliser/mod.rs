@@ -2,7 +2,7 @@ use super::air;
 use super::air::Typedef;
 use super::identifier::{Identifier, Identify, Symbolise};
 use super::noir::*;
-use super::noir::context::*;
+use super::noir::context::Context;
 
 pub struct Normaliser {
     context: Context,

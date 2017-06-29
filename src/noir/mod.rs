@@ -209,6 +209,42 @@ impl Typedef for DefExpr {
     }
 }
 
+///
+#[derive(Clone)]
+pub struct DerefExpr {
+    identifier: Identifier,
+    inner: Expr,
+}
+
+impl DerefExpr {
+    pub fn new<Inner>(identifier: Identifier, inner: Inner) -> DerefExpr
+        where Inner: Into<Expr>
+    {
+        DerefExpr {
+            identifier: identifier,
+            inner: inner.into(),
+        }
+    }
+
+    pub fn inner(&self) -> &Expr {
+        &self.inner
+    }
+}
+
+impl Identify for DerefExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
+impl Typedef for DerefExpr {
+    fn typedef(&self) -> Type {
+        match self.inner.typedef() {
+            Type::Ptr(ptr_type) => ptr_type.inner().clone(),
+            Type::Ref(ref_type) => ref_type.inner().clone(),
+        }
+    }
+}
 
 ///
 #[derive(Clone)]
@@ -758,6 +794,87 @@ impl RefType {
 
 ///
 #[derive(Clone)]
+pub struct StructExpr {
+    identifier: Identifier,
+    elements: Exprs,
+    ty: Box<StructType>,
+}
+
+impl StructExpr {
+    pub fn new<Elements, Ty>(identifier: Identifier, elements: Elements, ty: Ty) -> StructType
+        where Elements: Into<Exprs>,
+              Ty: Into<Box<StructType>>
+    {
+        StructExpr {
+            identifier: identifier,
+            elements: elements.into(),
+            ty: ty.into(),
+        }
+    }
+
+    pub fn elements(&self) -> &Exprs {
+        &self.elements
+    }
+}
+
+impl Identify for StructExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
+impl Typedef for StructExpr {
+    fn typedef(&self) -> Type {
+        self.ty.clone()
+    }
+}
+
+///
+#[derive(Clone)]
+pub struct StructAccessExpr {
+    identifier: Identifier,
+    target: Expr,
+    element: Variable,
+}
+
+impl StructAccessExpr {
+    pub fn new<Target, Element>(identifier: Identifier,
+                                target: Target,
+                                element: Element)
+                                -> StructAccessExpr
+        where Target: Into<Expr>,
+              Element: Into<Variable>
+    {
+        StructAccessExpr {
+            identifier: identifier,
+            target: target.into(),
+            element: element.into(),
+        }
+    }
+
+    pub fn target(&self) -> &Expr {
+        &self.target
+    }
+
+    pub fn element(&self) -> &Variable {
+        &self.element
+    }
+}
+
+impl Identify for StructAccessExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
+impl Typedef for StructAccessExpr {
+    fn typedef(&self) -> Type {
+        self.element.typedef()
+    }
+}
+
+///
+#[derive(Clone)]
 pub struct StructType {
     symbol: Symbol,
     elements: Variables,
@@ -855,6 +972,7 @@ pub enum Expr {
     Block(Box<BlockExpr>),
     Call(Box<CallExpr>),
     Def(Box<DefExpr>),
+    Deref(Box<DerefExpr>),
     For(Box<ForExpr>),
     If(Box<IfExpr>),
     Item(Box<ItemExpr>),
@@ -862,8 +980,8 @@ pub enum Expr {
     Process(Box<ProcessExpr>),
     ProcessJoin(Box<ProcessJoinExpr>),
     Ref(Box<RefExpr>),
-    // Struct(StructExpr),
-    // StructAccess(StructAcessExpr),
+    Struct(Box<StructExpr>),
+    StructAccess(Box<StructAccessExpr>),
     Void(Box<VoidExpr>),
 }
 
@@ -894,6 +1012,12 @@ impl From<CallExpr> for Expr {
 impl From<DefExpr> for Expr {
     fn from(expr: DefExpr) -> Expr {
         Expr::Def(expr.into())
+    }
+}
+
+impl From<DerefExpr> for Expr {
+    fn from(expr: DerefExpr) -> Expr {
+        Expr::Deref(expr.into())
     }
 }
 
@@ -930,6 +1054,24 @@ impl From<ProcessExpr> for Expr {
 impl From<ProcessJoinExpr> for Expr {
     fn from(expr: ProcessJoinExpr) -> Expr {
         Expr::ProcessJoin(expr.into())
+    }
+}
+
+impl From<RefExpr> for Expr {
+    fn from(expr: RefExpr) -> Expr {
+        Expr::Ref(expr.into())
+    }
+}
+
+impl From<StructExpr> for Expr {
+    fn from(expr: StructExpr) -> Expr {
+        Expr::Struct(expr.into())
+    }
+}
+
+impl From<StructAccessExpr> for Expr {
+    fn from(expr: StructAccessExpr) -> Expr {
+        Expr::StructAccess(expr.into())
     }
 }
 

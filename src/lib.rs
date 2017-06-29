@@ -3,10 +3,6 @@ extern crate lazy_static;
 extern crate libc;
 extern crate regex;
 
-// The base IR is declared first so that other IRs can use its macros.
-#[macro_use]
-pub mod bair;
-
 // The IRs are declared second so that they can use the base 
 #[macro_use]
 pub mod air;
