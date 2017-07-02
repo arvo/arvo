@@ -29,12 +29,37 @@ pub struct AssignExpr {
 ///
 #[derive(Clone)]
 pub struct BlockExpr {
-    identifier: Identifier,
-    body: Exprs,
-    ret: Expr,
-    function_table: FunctionTable,
-    module_table: ModuleTable,
-    types: Types,
+    pub identifier: Identifier,
+    pub body: Exprs,
+    pub ret: Expr,
+    pub function_table: FunctionTable,
+    pub module_table: ModuleTable,
+    pub type_table: TypeTable,
+}
+
+impl BlockExpr {
+    pub fn new(identifier: Identifier,
+               body: Exprs,
+               ret: Expr,
+               function_table: FunctionTable,
+               module_table: ModuleTable,
+               type_table: TypeTable)
+               -> BlockExpr {
+        BlockExpr {
+            identifier: identifier,
+            body: body,
+            ret: ret,
+            function_table: function_table,
+            module_table: module_table,
+            type_table: type_table,
+        }
+    }
+}
+
+impl Identify for BlockExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
 }
 
 ///
@@ -43,9 +68,25 @@ pub type BlockExprs = Vec<BlockExpr>;
 ///
 #[derive(Clone)]
 pub struct CallExpr {
-    identifier: Identifier,
-    target: Expr,
-    arguments: Exprs,
+    pub identifier: Identifier,
+    pub target: Expr,
+    pub arguments: Exprs,
+}
+
+impl CallExpr {
+    pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
+        CallExpr {
+            identifier: identifier,
+            target: target,
+            arguments: arguments,
+        }
+    }
+}
+
+impl Identify for CallExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
 }
 
 ///
@@ -264,6 +305,18 @@ pub struct VoidExpr {
     identifier: Identifier,
 }
 
+impl VoidExpr {
+    pub fn new(identifier: Identifier) -> VoidExpr {
+        VoidExpr { identifier: identifier }
+    }
+}
+
+impl Identify for VoidExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
 ///
 #[derive(Clone)]
 pub enum Expr {
@@ -280,6 +333,30 @@ pub enum Expr {
     Ref(Box<RefExpr>),
     Variable(Box<VariableExpr>),
     Void(Box<VoidExpr>),
+}
+
+impl From<AssignExpr> for Expr {
+    fn from(assign_expr: AssignExpr) -> Expr {
+        Expr::Assign(assign_expr.into())
+    }
+}
+
+impl From<BlockExpr> for Expr {
+    fn from(block_expr: BlockExpr) -> Expr {
+        Expr::Block(block_expr.into())
+    }
+}
+
+impl From<CallExpr> for Expr {
+    fn from(call_expr: CallExpr) -> Expr {
+        Expr::Call(call_expr.into())
+    }
+}
+
+impl From<VoidExpr> for Expr {
+    fn from(void_expr: VoidExpr) -> Expr {
+        Expr::Void(void_expr.into())
+    }
 }
 
 ///

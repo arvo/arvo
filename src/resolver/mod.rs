@@ -2,7 +2,7 @@
 
 use super::air;
 use super::ast;
-use super::identifier::{Id, Identify, Name, Symbolise};
+use super::identifier::{Identifier, Id, Identify, Name, Symbolise};
 
 pub struct Resolver {
     // the source of truth for information about the nodes that have been
@@ -36,10 +36,39 @@ impl Resolver {
         self.context
     }
 
+    pub fn resolve_block_expr(&mut self, block_expr: &ast::BlockExpr) -> air::BlockExpr {
+        let resolved_block_expr = air::BlockExpr::new(
+            Identifier::id(),
+            air::Exprs::new(),
+            air::VoidExpr::new(Identifier::id()).into(),
+            air::FunctionTable::new(),
+            air::ModuleTable::new(),
+            air::TypeTable::new()
+        );
+
+        // descend into the block
+        self.block_stack.push(resolved_block_expr);
+        let resolved_body = self.resolve_exprs(&block_expr.body);
+        let resolved_ret = self.resolve_expr(&block_expr.ret);
+        let mut resolved_block_expr = self.block_stack.pop().unwrap();
+        resolved_block_expr.body = resolved_body;
+        resolved_block_expr.ret = resolved_ret;
+
+        resolved_block_expr
+    }
+
+    pub fn resolve_call_expr(&mut self, call_expr: &ast::CallExpr) -> air::CallExpr {
+        air::CallExpr::new(
+            Identifier::id(),
+            self.resolve_expr(&call_expr.target),
+            self.resolve_exprs(&call_expr.arguments),
+        )
+    }
+
     pub fn resolve_function(&mut self, function: &ast::Function) -> air::Function {
         // resolving the function profile is idempotent so we do it here just
         // in case it hasn't been done yet
-        let mut resolved_function = self.resolve_function_profile(&function.profile);
+        let resolved_function = self.resolve_function_profile(&function.profile);
 
         // descend into the function
         self.function_stack.push(resolved_function);
@@ -165,7 +194,18 @@ impl Resolver {
     }
 
     pub fn resolve_expr(&mut self, expr: &ast::Expr) -> air::Expr {
-        unimplemented!()
+        match *expr {
+            ast::Expr::Block(ref block_expr) => self.resolve_block_expr(block_expr).into(),
+            ast::Expr::Call(ref call_expr) => self.resolve_call_expr(call_expr).into(),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn resolve_exprs(&mut self, exprs: &ast::Exprs) -> air::Exprs {
+        exprs
+            .iter()
+            .map(|expr| self.resolve_expr(expr))
+            .collect()
     }
 
     pub fn resolve_type(&mut self, ty: &ast::Type) -> air::Type {

@@ -25,15 +25,15 @@ pub struct AssignExpr {
 ///
 #[derive(Clone)]
 pub struct BlockExpr {
-    body: Exprs,
-    ret: Expr,
+    pub body: Exprs,
+    pub ret: Expr,
 }
 
 ///
 #[derive(Clone)]
 pub struct CallExpr {
-    target: Expr,
-    arguments: Exprs,
+    pub target: Expr,
+    pub arguments: Exprs,
 }
 
 ///
