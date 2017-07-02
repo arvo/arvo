@@ -7,12 +7,19 @@
 //! semantic analysis has been done to ensure that the program is actually
 //! valid.
 
-use super::identifier::Symbol;
+use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
 ///
 #[derive(Clone)]
 pub struct AliasType {
     inner: Type,
+}
+
+///
+#[derive(Clone)]
+pub struct AssignExpr {
+    lhs: Expr,
+    rhs: Expr,
 }
 
 ///
@@ -39,7 +46,7 @@ pub struct DerefExpr {
 #[derive(Clone)]
 pub struct EnumType {
     symbol: Symbol,
-    generics: Types,
+    params: Types,
     variants: Box<StructType>,
 }
 
@@ -54,16 +61,22 @@ pub struct ForExpr {
 ///
 #[derive(Clone)]
 pub struct Function {
-    profile: Box<FunctionProfile>,
-    body: Expr,
+    pub profile: Box<FunctionProfile>,
+    pub body: Expr,
 }
 
 ///
 #[derive(Clone)]
 pub struct FunctionProfile {
-    symbol: Symbol,
-    formals: Variables,
-    ret: Type,
+    pub symbol: Symbol,
+    pub formals: Variables,
+    pub ret: Type,
+}
+
+impl Symbolise for FunctionProfile {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
+    }
 }
 
 ///
@@ -77,8 +90,8 @@ pub struct IfExpr {
 ///
 #[derive(Clone)]
 pub struct ItemPathExpr {
-    item: Item,
     path: Exprs,
+    item: Item,
 }
 
 ///
@@ -104,8 +117,32 @@ pub struct LiteralExpr {
 ///
 #[derive(Clone)]
 pub struct Module {
-    symbol: Symbol,
-    decls: Decls,
+    pub symbol: Symbol,
+    pub declarations: Decls,
+}
+
+impl Module {
+    pub fn new<Sym, Declarations>(symbol: Sym, declarations: Declarations) -> Module
+        where Sym: Into<Symbol>,
+              Declarations: Into<Decls>
+    {
+        Module {
+            symbol: symbol.into(),
+            declarations: declarations.into(),
+        }
+    }
+}
+
+impl Identify for Module {
+    fn identify(&self) -> Identifier {
+        self.symbol.identify()
+    }
+}
+
+impl Symbolise for Module {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
+    }
 }
 
 ///
@@ -128,9 +165,16 @@ pub struct RefExpr {
 
 ///
 #[derive(Clone)]
+pub struct StructExpr {
+    elements: Vec<(Symbol, Expr)>,
+    ty: Type,
+}
+
+///
+#[derive(Clone)]
 pub struct StructType {
     symbol: Symbol,
-    generics: Types,
+    params: Types,
     elements: Variables,
 }
 
@@ -144,18 +188,28 @@ pub struct Unresolved {
 #[derive(Clone)]
 pub struct UnresolvedType {
     symbol: Symbol,
-    generics: Types,
+    params: Types,
 }
 
 ///
 #[derive(Clone)]
 pub struct Variable {
-    symbol: Symbol,
-    ty: Type,
+    pub symbol: Symbol,
+    pub ty: Type,
+}
+
+impl Symbolise for Variable {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
+    }
 }
 
 ///
 pub type Variables = Vec<Variable>;
+
+///
+#[derive(Clone)]
+pub struct VoidExpr {}
 
 ///
 #[derive(Clone)]
@@ -172,6 +226,7 @@ pub type Decls = Vec<Decl>;
 ///
 #[derive(Clone)]
 pub enum Expr {
+    Assign(Box<AssignExpr>),
     Block(Box<BlockExpr>),
     Call(Box<CallExpr>),
     Deref(Box<DerefExpr>),
@@ -180,7 +235,9 @@ pub enum Expr {
     ItemPath(Box<ItemPathExpr>),
     Let(Box<LetExpr>),
     Literal(Box<LiteralExpr>),
+    Struct(Box<StructExpr>),
     Ref(Box<RefExpr>),
+    Void(Box<VoidExpr>),
 }
 
 ///

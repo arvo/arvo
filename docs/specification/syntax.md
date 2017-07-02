@@ -38,11 +38,11 @@ A type declaration defines a new type.
 
 ```
 type ::= type_struct | type_enum | type_alias
-type_generics_opts ::= | type_generics
-type_generics ::= type_generic | type_generics type_generic
-type_generic ::= symbol
+type_params_opts ::= | type_params
+type_params ::= type_param | type_params type_param
+type_param ::= symbol
 
-type_struct ::= "type" symbol type_generics_opt "{"
+type_struct ::= "type" symbol type_params_opt "{"
     type_struct_fields_opt
     comma_opt
 "}"
@@ -52,14 +52,14 @@ type_struct_field ::= expose_opt symbol type_identifier
 comma_opt ::= | ","
 expose_opt ::= | "expose"
 
-type_enum ::= "type" symbol type_generics_opt "=" type_enum_variants
+type_enum ::= "type" symbol type_params_opt "=" type_enum_variants
 type_enum_variants ::= type_enum_variant | type_enum_variants "|" type_enum_variant
-type_enum_variant ::= symbol type_generics_opt
-                    | symbol type_generics_opt "{" type_enum_variant_fields comma_opt "}"
+type_enum_variant ::= symbol type_params_opt
+                    | symbol type_params_opt "{" type_enum_variant_fields comma_opt "}"
 type_enum_variant_fields ::= type_enum_variant_field | type_enum_variant_fields "," type_enum_variant_field
 type_enum_variant_field ::= symbol type_identifier
 
-type_alias = "type" symbol type_generics_opt "=" type_identifier
+type_alias = "type" symbol type_params_opt "=" type_identifier
 ```
 
 * The use of `type_identifier` cannot include `ref` or `mut ref`.
@@ -71,8 +71,16 @@ type Point {
   y f64,
 }
 
+// declaring a generic struct
+type List a {
+  items [a],
+}
+
 // declaring an enum
 type Colors = Red | Green | Blue | RGB { r u8, g u8, b u8 }
+
+// declaring a generic enum
+type Option a = Some a | Nil
 
 // declaring a type alias
 type Int64 = i64
@@ -86,18 +94,18 @@ type Unit {}
 A type identifier is used to access a type that is currently in scope.
 
 ```
-type_identifier ::= symbol type_generic_identifiers_opt
+type_identifier ::= symbol type_param_identifiers_opt
                 | "ref" type_identifier
                 | "mut ref" type_identifier
                 | "(" type_identifiers ")"
 
-type_generic_identifiers_opts ::= | type_generic_identifiers
-type_generic_identifiers ::= type_identifier | type_generic_identifiers type_identifier
+type_param_identifiers_opts ::= | type_param_identifiers
+type_param_identifiers ::= type_identifier | type_param_identifiers type_identifier
 
 type_identifiers ::= type_identifier | type_identifiers "," type_identifier
 ```
 
-* The definition of `type_identifier` includes the instantiation generic types.
+* The definition of `type_identifier` includes the instantiation of generic type parameters.
 
 ## Expr
 
