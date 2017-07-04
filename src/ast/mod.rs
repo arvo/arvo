@@ -9,6 +9,8 @@
 
 use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
+pub mod macros;
+
 ///
 #[derive(Clone)]
 pub struct AliasType {

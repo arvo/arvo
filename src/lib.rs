@@ -8,8 +8,8 @@ extern crate regex;
 pub mod air;
 #[macro_use]
 pub mod ast;
-// #[macro_use]
-// pub mod noir;
+#[macro_use]
+pub mod noir;
 
 // Compiler passes are exported so that other libraries and binaries can use
 // them.
