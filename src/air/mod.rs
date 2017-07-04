@@ -289,6 +289,12 @@ impl Variable {
     }
 }
 
+impl Symbolise for Variable {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
+    }
+}
+
 ///
 pub type Variables = Vec<Variable>;
 
@@ -368,6 +374,31 @@ pub enum Item {
     Function(Box<Function>),
     Module(Box<Module>),
     Type(Box<Type>),
+    Variable(Box<Variable>),
+}
+
+impl From<Function> for Item {
+    fn from(item: Function) -> Item {
+        Item::Function(item.into())
+    }
+}
+
+impl From<Module> for Item {
+    fn from(item: Module) -> Item {
+        Item::Module(item.into())
+    }
+}
+
+impl From<Type> for Item {
+    fn from(item: Type) -> Item {
+        Item::Type(item.into())
+    }
+}
+
+impl From<Variable> for Item {
+    fn from(item: Variable) -> Item {
+        Item::Variable(item.into())
+    }
 }
 
 ///

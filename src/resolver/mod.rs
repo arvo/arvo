@@ -2,7 +2,11 @@
 
 use super::air;
 use super::ast;
-use super::identifier::{Identifier, Id, Identify, Name, Symbolise};
+use super::identifier::{Identifier, Id, Identify, Name, Symbol, Symbolise};
+
+pub trait Resolve {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item>;
+}
 
 pub struct Resolver {
     // the source of truth for information about the nodes that have been
@@ -37,14 +41,12 @@ impl Resolver {
     }
 
     pub fn resolve_block_expr(&mut self, block_expr: &ast::BlockExpr) -> air::BlockExpr {
-        let resolved_block_expr = air::BlockExpr::new(
-            Identifier::id(),
-            air::Exprs::new(),
-            air::VoidExpr::new(Identifier::id()).into(),
-            air::FunctionTable::new(),
-            air::ModuleTable::new(),
-            air::TypeTable::new()
-        );
+        let resolved_block_expr = air::BlockExpr::new(Identifier::id(),
+                                                      air::Exprs::new(),
+                                                      air::VoidExpr::new(Identifier::id()).into(),
+                                                      air::FunctionTable::new(),
+                                                      air::ModuleTable::new(),
+                                                      air::TypeTable::new());
 
         // descend into the block
         self.block_stack.push(resolved_block_expr);
@@ -58,11 +60,9 @@ impl Resolver {
     }
 
     pub fn resolve_call_expr(&mut self, call_expr: &ast::CallExpr) -> air::CallExpr {
-        air::CallExpr::new(
-            Identifier::id(),
-            self.resolve_expr(&call_expr.target),
-            self.resolve_exprs(&call_expr.arguments),
-        )
+        air::CallExpr::new(Identifier::id(),
+                           self.resolve_expr(&call_expr.target),
+                           self.resolve_exprs(&call_expr.arguments))
     }
 
     pub fn resolve_function(&mut self, function: &ast::Function) -> air::Function {
@@ -81,13 +81,14 @@ impl Resolver {
         resolved_function
     }
 
-    pub fn resolve_function_profile(&mut self, function_profile: &ast::FunctionProfile) -> air::Function {
-        let resolved_function = air::Function::new(
-            function_profile.symbolise(),
-            self.resolve_variables(&function_profile.formals),
-            self.resolve_type(&function_profile.ret),
-            None
-        );
+    pub fn resolve_function_profile(&mut self,
+                                    function_profile: &ast::FunctionProfile)
+                                    -> air::Function {
+        let resolved_function =
+            air::Function::new(function_profile.symbolise(),
+                               self.resolve_variables(&function_profile.formals),
+                               self.resolve_type(&function_profile.ret),
+                               None);
         self.add_function(&resolved_function);
         resolved_function
     }
@@ -110,8 +111,7 @@ impl Resolver {
         resolved_module
     }
 
-    fn insert_module_children(&mut self,
-                              module: &ast::Module) {
+    fn insert_module_children(&mut self, module: &ast::Module) {
         // resolve all child modules because circular dependencies are not
         // allowed we know that the parent module does not have to be resolved
         // before the child module
@@ -146,7 +146,8 @@ impl Resolver {
         for decl in &module.declarations {
             match *decl {
                 ast::Decl::Function(ref function) => {
-                    let resolved_function_profile = self.resolve_function_profile(&function.profile);
+                    let resolved_function_profile =
+                        self.resolve_function_profile(&function.profile);
                     self.add_function(&resolved_function_profile);
                 }
                 ast::Decl::FunctionProfile(ref function_profile) => {
@@ -214,29 +215,125 @@ impl Resolver {
 
     fn add_function(&mut self, function: &air::Function) {
         if let Some(parent_module) = self.module_stack.iter_mut().last() {
-            parent_module.function_table.insert(function.identify(), function.clone());
+            parent_module
+                .function_table
+                .insert(function.identify(), function.clone());
         }
-        self.context.function_table.insert(function.identify(), function.clone());
+        self.context
+            .function_table
+            .insert(function.identify(), function.clone());
     }
 
     fn add_module(&mut self, module: &air::Module) {
         if let Some(parent_module) = self.module_stack.iter_mut().last() {
             let mut redeclared = false;
             for (identifier, m) in &parent_module.module_table {
-                if m.identify().id() != identifier.id() && m.symbolise().name() == module.symbolise().name() {
+                if m.identify().id() != identifier.id() &&
+                   m.symbolise().name() == module.symbolise().name() {
                     redeclared = true;
                 }
             }
             if redeclared {
                 unimplemented!()
             } else {
-                parent_module.module_table.insert(module.identify(), module.clone());
+                parent_module
+                    .module_table
+                    .insert(module.identify(), module.clone());
             }
         }
-        self.context.module_table.insert(module.identify(), module.clone());
+        self.context
+            .module_table
+            .insert(module.identify(), module.clone());
     }
 
     fn add_type(&mut self, ty: &air::Type) {
         unimplemented!()
+    }
+}
+
+impl Resolve for Resolver {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+        unimplemented!()
+    }
+}
+
+pub enum Scope {
+    Block(Box<air::BlockExpr>),
+    If(Box<air::IfExpr>),
+    For(Box<air::ForExpr>),
+    Function(Box<air::Function>),
+    Module(Box<air::Module>),
+}
+
+impl Resolve for Scope {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+        match *self {
+            Scope::Block(ref block_expr) => (*block_expr).resolve(symbol),
+            Scope::If(ref if_expr) => if_expr.resolve(symbol),
+            Scope::For(ref for_expr) => for_expr.resolve(symbol),
+            Scope::Function(ref function) => function.resolve(symbol),
+            Scope::Module(ref module) => module.resolve(symbol),
+        }
+    }
+}
+
+impl Resolve for air::BlockExpr {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+        unimplemented!()
+    }
+}
+
+impl Resolve for air::IfExpr {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+        unimplemented!()
+    }
+}
+
+impl Resolve for air::ForExpr {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+        unimplemented!()
+    }
+}
+
+impl Resolve for air::Function {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+        // Compare against formals
+        for formal in &self.formals {
+            if formal.symbolise().name() == symbol.name() {
+                return Some(formal.clone().into());
+            }
+        }
+
+        // No candidate was found
+        None
+    }
+}
+
+impl Resolve for air::Module {
+    fn resolve(&self, symbol: Symbol) -> Option<air::Item> {
+
+        // Compare against modules
+        for (id, module) in &self.module_table {
+            if id.name() == symbol.name() {
+                return Some(module.clone().into());
+            }
+        }
+
+        // Compare against functions
+        for (id, function) in &self.function_table {
+            if id.name() == symbol.name() {
+                return Some(function.clone().into());
+            }
+        }
+
+        // Compare against types
+        for (id, ty) in &self.type_table {
+            if id.name() == symbol.name() {
+                return Some(ty.clone().into());
+            }
+        }
+
+        // No candidate was found
+        None
     }
 }
