@@ -11,23 +11,7 @@ use std::collections::HashMap;
 
 pub mod context;
 
-<<<<<<< HEAD
-impl BlockExpr {
-    pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
-        BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
-    }
-
-    pub fn body(&self) -> Exprs {
-        object_proxy![self.0 => body().clone()]
-    }
-
-    pub fn ret(&self) -> Expr {
-        object_proxy![self.0 => ret().clone()]
-    }
-}
-=======
 pub use self::context::*;
->>>>>>> simplify-ir
 
 ///
 #[derive(Clone)]
@@ -70,17 +54,6 @@ impl BlockExpr {
             type_table: type_table,
         }
     }
-<<<<<<< HEAD
-
-    fn body(&self) -> &Exprs {
-        &self.body
-    }
-
-    fn ret(&self) -> &Expr {
-        &self.ret
-    }
-=======
->>>>>>> simplify-ir
 }
 
 impl Identify for BlockExpr {
