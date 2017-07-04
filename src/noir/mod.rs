@@ -6,284 +6,123 @@
 //! this stage of compilation, it is valid. Optimisation passes, and code
 //! generation passes, are done using NoIR.
 
-use std::collections::HashMap;
+use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
-use super::bair::{Object, PrimitiveType};
-use super::identifier::{Identifier, Identify, Id, Symbol, Symbolise};
+use std::collections::HashMap;
 
 #[macro_use]
 pub mod macros;
+pub mod context;
 pub mod prelude;
 pub mod runtime;
 
-/// The `Typedef` trait is implemented by nodes that can express some `Type`.
-pub trait Typedef {
-    fn typedef(&self) -> Type;
+pub use self::context::*;
+
+///
+#[derive(Clone)]
+pub struct AliasType {
+    symbol: Symbol,
+    inner: Type,
 }
 
 ///
 #[derive(Clone)]
-pub struct BlockExpr(Object<_BlockExpr>);
+pub struct AssignExpr {
+    lhs: RefExpr,
+    rhs: Expr,
+}
+
+///
+#[derive(Clone)]
+pub struct BlockExpr {
+    pub identifier: Identifier,
+    pub prelude: Exprs,
+    pub body: Exprs,
+    pub epilogue: Exprs,
+    pub ret: Expr,
+    pub function_table: FunctionTable,
+    pub module_table: ModuleTable,
+    pub type_table: TypeTable,
+}
 
 impl BlockExpr {
-    pub fn new(identifier: Identifier, body: Exprs, ret: Expr) -> BlockExpr {
-        BlockExpr(object!(_BlockExpr::new(identifier, body, ret)))
-    }
-
-    pub fn ret(&self) -> Expr {
-        object_proxy![self.0 => ret().clone()]
-    }
-
-    pub fn for_body_exprs<T, F: FnMut(&mut Expr) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => body_mut().iter_mut() loop expr {
-            f(expr);
-        }]
-    }
-
-    pub fn num_body_exprs(&self) -> usize {
-        object_proxy![self.0 => body().len()]
+    pub fn new(identifier: Identifier,
+               prelude: Exprs,
+               body: Exprs,
+               epilogue: Exprs,
+               ret: Expr,
+               function_table: FunctionTable,
+               module_table: ModuleTable,
+               type_table: TypeTable)
+               -> BlockExpr {
+        BlockExpr {
+            identifier: identifier,
+            prelude: prelude,
+            body: body,
+            epilogue: epilogue,
+            ret: ret,
+            function_table: function_table,
+            module_table: module_table,
+            type_table: type_table,
+        }
     }
 }
 
 impl Identify for BlockExpr {
     fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-#[derive(Clone)]
-struct _BlockExpr {
-    identifier: Identifier,
-    body: Exprs,
-    ret: Expr,
-}
-
-impl _BlockExpr {
-    fn new(identifier: Identifier, body: Exprs, ret: Expr) -> _BlockExpr {
-        _BlockExpr {
-            identifier: identifier,
-            body: body,
-            ret: ret,
-        }
-    }
-
-    fn body(&self) -> &Exprs {
-        &self.body
-    }
-
-    fn body_mut(&mut self) -> &mut Exprs {
-        &mut self.body
-    }
-
-    fn ret(&self) -> &Expr {
-        &self.ret
-    }
-}
-
-impl Identify for _BlockExpr {
-    fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
 ///
+pub type BlockExprs = Vec<BlockExpr>;
+
+///
 #[derive(Clone)]
-pub struct CallExpr(Object<_CallExpr>);
+pub struct CallExpr {
+    pub identifier: Identifier,
+    pub target: Expr,
+    pub arguments: Exprs,
+}
 
 impl CallExpr {
     pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
-        CallExpr(object!(_CallExpr::new(identifier, target, arguments)))
-    }
-
-    pub fn target(&self) -> Expr {
-        object_proxy![self.0 => target().clone()]
-    }
-
-    pub fn for_arguments<T, F: FnMut(&mut Expr) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => arguments_mut().iter_mut() loop argument {
-            f(argument);
-        }]
-    }
-
-    pub fn map_arguments<T, F: FnMut(&mut Expr) -> T>(&self, f: F) -> Vec<T> {
-        object_proxy_mut![self.0 => arguments_mut().iter_mut().map(f).collect()]
-    }
-
-    pub fn num_arguments(&self) -> usize {
-        object_proxy![self.0 => arguments().len()]
-    }
-}
-
-impl Identify for CallExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-#[derive(Clone)]
-struct _CallExpr {
-    identifier: Identifier,
-    target: Expr,
-    arguments: Exprs,
-}
-
-impl _CallExpr {
-    fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> _CallExpr {
-        _CallExpr {
+        CallExpr {
             identifier: identifier,
             target: target,
             arguments: arguments,
         }
     }
-
-    fn target(&self) -> &Expr {
-        &self.target
-    }
-
-    fn arguments(&self) -> &Exprs {
-        &self.arguments
-    }
-
-    fn arguments_mut(&mut self) -> &mut Exprs {
-        &mut self.arguments
-    }
 }
 
-impl Identify for _CallExpr {
+impl Identify for CallExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
     }
 }
 
 ///
-pub struct Context {
-    prelude: prelude::Prelude,
-    runtime: runtime::Runtime,
-}
-
-impl Context {
-    pub fn new() -> Context {
-        Context {
-            prelude: prelude::Prelude::new(),
-            runtime: runtime::Runtime::new(),
-        }
-    }
-
-    pub fn prelude(&self) -> &prelude::Prelude {
-        &self.prelude
-    }
-
-    pub fn runtime(&self) -> &runtime::Runtime {
-        &self.runtime
-    }
-}
-
-///
 #[derive(Clone)]
-pub struct DefExpr(Object<_DefExpr>);
-
-impl DefExpr {
-    pub fn new(identifier: Identifier, variable: Variable, definition: Expr) -> DefExpr {
-        DefExpr(object!(_DefExpr::new(identifier, variable, definition)))
-    }
-}
-
-#[derive(Clone)]
-struct _DefExpr {
+pub struct DerefExpr {
     identifier: Identifier,
-    variable: Variable,
-    definition: Expr,
-}
-
-impl _DefExpr {
-    fn new(identifier: Identifier, variable: Variable, definition: Expr) -> _DefExpr {
-        _DefExpr {
-            identifier: identifier,
-            variable: variable,
-            definition: definition,
-        }
-    }
-}
-
-impl Identify for _DefExpr {
-    fn identify(&self) -> Identifier {
-        self.identifier.clone()
-    }
+    inner: Expr,
 }
 
 ///
 #[derive(Clone)]
-pub enum Expr {
-    Block(BlockExpr),
-    Call(CallExpr),
-    Def(DefExpr),
-    For(ForExpr),
-    If(IfExpr),
-    Item(ItemExpr),
-    Literal(LiteralExpr),
-    Process(ProcessExpr),
-    ProcessJoin(ProcessJoinExpr),
-    Struct(StructExpr),
-    StructElement(StructElementExpr),
-    Void(VoidExpr),
-}
-
-pub type Exprs = Vec<Expr>;
-
-impl From<BlockExpr> for Expr {
-    fn from(block_expr: BlockExpr) -> Expr {
-        Expr::Block(block_expr)
-    }
-}
-
-impl From<CallExpr> for Expr {
-    fn from(call_expr: CallExpr) -> Expr {
-        Expr::Call(call_expr)
-    }
-}
-
-impl From<LiteralExpr> for Expr {
-    fn from(literal_expr: LiteralExpr) -> Expr {
-        Expr::Literal(literal_expr)
-    }
-}
-
-impl From<ItemExpr> for Expr {
-    fn from(item_expr: ItemExpr) -> Expr {
-        Expr::Item(item_expr)
-    }
-}
-
-impl From<ProcessExpr> for Expr {
-    fn from(process_expr: ProcessExpr) -> Expr {
-        Expr::Process(process_expr)
-    }
-}
-
-impl From<ProcessJoinExpr> for Expr {
-    fn from(process_join_expr: ProcessJoinExpr) -> Expr {
-        Expr::ProcessJoin(process_join_expr)
-    }
-}
-
-impl From<VoidExpr> for Expr {
-    fn from(void_expr: VoidExpr) -> Expr {
-        Expr::Void(void_expr)
-    }
+pub struct EnumType {
+    symbol: Symbol,
+    params: Types,
+    variants: Box<StructType>,
 }
 
 ///
 #[derive(Clone)]
-pub struct ForExpr(Object<_ForExpr>);
-
-impl ForExpr {
-    pub fn new(identifier: Identifier,
-               variables: Variables,
-               iterand: Expr,
-               iteration: BlockExpr)
-               -> ForExpr {
-        ForExpr(object!(_ForExpr::new(identifier, variables, iterand, iteration)))
-    }
+pub struct ForExpr {
+    identifier: Identifier,
+    formals: Variables,
+    iterator: Expr,
+    iteration: Box<BlockExpr>,
 }
 
 #[derive(Clone)]
@@ -295,278 +134,333 @@ struct _ForExpr {
 
 ///
 #[derive(Clone)]
-pub struct Function(Object<_Function>);
-pub type Functions = HashMap<Identifier, Function>;
-
-impl Function {
-    pub fn new(symbol: Symbol,
-               formals: Variables,
-               block: Option<BlockExpr>,
-               ty: LambdaType)
-               -> Function {
-        Function(object!(_Function::new(symbol, formals, block, ty)))
-    }
-
-    pub fn for_formals<T, F: FnMut(&mut Variable) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => formals_mut().iter_mut() loop formal {
-            f(formal);
-        }]
-    }
-
-    pub fn map_formals<T, F: FnMut(&mut Variable) -> T>(&self, f: F) -> Vec<T> {
-        object_proxy_mut![self.0 => formals_mut().iter_mut().map(f).collect()]
-    }
-
-    pub fn num_formals(&self) -> usize {
-        object_proxy![self.0 => formals().len()]
-    }
-
-    pub fn block(&self) -> Option<BlockExpr> {
-        object_proxy![self.0 => block().clone()]
-    }
-
-    pub fn ty(&self) -> LambdaType {
-        object_proxy![self.0 => ty().clone()]
-    }
+pub struct Function {
+    pub symbol: Symbol,
+    pub formals: Variables,
+    pub ret: Type,
+    pub body: Option<BlockExpr>,
 }
 
-impl Typedef for Function {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => typedef()]
+impl Function {
+    pub fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<BlockExpr>) -> Function {
+        Function {
+            symbol: symbol,
+            formals: formals,
+            ret: ret,
+            body: body,
+        }
     }
 }
 
 impl Identify for Function {
     fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Symbolise for Function {
-    fn symbolise(&self) -> Symbol {
-        object_proxy![self.0 => symbolise()]
-    }
-}
-
-#[derive(Clone)]
-struct _Function {
-    symbol: Symbol,
-    formals: Variables,
-    block: Option<BlockExpr>,
-    ty: LambdaType,
-}
-
-impl _Function {
-    fn new(symbol: Symbol,
-           formals: Variables,
-           block: Option<BlockExpr>,
-           ty: LambdaType)
-           -> _Function {
-        _Function {
-            symbol: symbol,
-            formals: formals,
-            block: block,
-            ty: ty,
-        }
-    }
-
-    fn formals(&self) -> &Variables {
-        &self.formals
-    }
-
-    fn formals_mut(&mut self) -> &mut Variables {
-        &mut self.formals
-    }
-
-    fn block(&self) -> &Option<BlockExpr> {
-        &self.block
-    }
-
-    fn ty(&self) -> &LambdaType {
-        &self.ty
-    }
-}
-
-impl Typedef for _Function {
-    fn typedef(&self) -> Type {
-        Type::Lambda(self.ty.clone())
-    }
-}
-
-impl Identify for _Function {
-    fn identify(&self) -> Identifier {
         self.symbol.identify()
     }
 }
 
-impl Symbolise for _Function {
+impl Symbolise for Function {
     fn symbolise(&self) -> Symbol {
         self.symbol.clone()
     }
 }
 
 ///
+pub type Functions = Vec<Function>;
+
+///
+pub type FunctionTable = HashMap<Identifier, Function>;
+
+///
 #[derive(Clone)]
-pub struct ItemExpr(Object<_ItemExpr>);
-
-impl ItemExpr {
-    pub fn new(identifier: Identifier, item: Item) -> ItemExpr {
-        ItemExpr(object!(_ItemExpr::new(identifier, item)))
-    }
+pub struct IfExpr {
+    identifier: Identifier,
+    condition: Expr,
+    then_block: Box<BlockExpr>,
+    else_block: Box<BlockExpr>,
 }
 
-impl Identify for ItemExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Symbolise for ItemExpr {
-    fn symbolise(&self) -> Symbol {
-        object_proxy![self.0 => symbolise()]
-    }
-}
-
-impl Typedef for ItemExpr {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => typedef()]
-    }
-}
-
+///
 #[derive(Clone)]
-struct _ItemExpr {
+pub struct ItemExpr {
     identifier: Identifier,
     item: Item,
 }
 
-impl _ItemExpr {
-    fn new(identifier: Identifier, item: Item) -> _ItemExpr {
-        _ItemExpr {
-            identifier: identifier,
-            item: item,
+///
+#[derive(Clone)]
+pub struct LambdaType {
+    formals: Types,
+    ret: Type,
+}
+
+impl LambdaType {
+    pub fn new(formals: Types, ret: Type) -> LambdaType {
+        LambdaType {
+            formals: formals,
+            ret: ret,
         }
     }
 }
 
-impl Identify for _ItemExpr {
-    fn identify(&self) -> Identifier {
-        item_proxy![*&self.item => identify()]
-    }
-}
-
-impl Symbolise for _ItemExpr {
-    fn symbolise(&self) -> Symbol {
-        item_proxy![*&self.item => symbolise()]
-    }
-}
-
-impl Typedef for _ItemExpr {
-    fn typedef(&self) -> Type {
-        item_proxy![*&self.item => typedef()]
-    }
-}
-
+///
 #[derive(Clone)]
-pub enum Item {
-    Function(Function),
-    Variable(Variable),
+pub struct LetExpr {
+    pub identifier: Identifier,
+    pub variable: Variable,
+    pub definition: AssignExpr,
 }
 
 ///
 #[derive(Clone)]
-pub struct LambdaType(Object<_LambdaType>);
-
-impl LambdaType {
-    pub fn new(formals: Vec<Type>, ty: Type) -> LambdaType {
-        LambdaType(object!(_LambdaType::new(formals, ty)))
-    }
-
-    pub fn for_formals<T, F: FnMut(&mut Type) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => formals_mut().iter_mut() loop formal {
-            f(formal);
-        }]
-    }
-
-    pub fn map_formals<T, F: FnMut(&mut Type) -> T>(&self, f: F) -> Vec<T> {
-        object_proxy_mut![self.0 => formals_mut().iter_mut().map(f).collect()]
-    }
-
-    pub fn num_formals(&self) -> usize {
-        object_proxy![self.0 => formals().len()]
-    }
+pub struct LiteralExpr {
+    pub identifier: Identifier,
+    pub literal: Literal,
 }
 
-impl Typedef for LambdaType {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => typedef()]
-    }
-}
-
+///
 #[derive(Clone)]
-pub struct _LambdaType {
-    formals: Vec<Type>,
+pub struct Module {
+    pub symbol: Symbol,
+    pub function_table: FunctionTable,
+    pub module_table: ModuleTable,
+    pub type_table: TypeTable,
+}
+
+impl Module {
+    pub fn new<S, F, M, T>(symbol: S, function_table: F, module_table: M, type_table: T) -> Module
+        where S: Into<Symbol>,
+              F: Into<FunctionTable>,
+              M: Into<ModuleTable>,
+              T: Into<TypeTable>
+    {
+        Module {
+            symbol: symbol.into(),
+            function_table: function_table.into(),
+            module_table: module_table.into(),
+            type_table: type_table.into(),
+        }
+    }
+}
+
+impl Identify for Module {
+    fn identify(&self) -> Identifier {
+        self.symbol.identify()
+    }
+}
+
+impl Symbolise for Module {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
+    }
+}
+
+///
+pub type Modules = Vec<Module>;
+
+///
+pub type ModuleTable = HashMap<Identifier, Module>;
+
+///
+#[derive(Clone)]
+pub struct ProcessExpr {
+    pub identifier: Identifier,
+    pub body: Box<BlockExpr>,
+}
+
+impl Identify for ProcessExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
+///
+#[derive(Clone)]
+pub struct ProcessJoinExpr {
+    pub identifier: Identifier,
+    pub process_expr: Box<ProcessExpr>,
+}
+
+impl Identify for ProcessJoinExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
+    }
+}
+
+///
+#[derive(Clone)]
+pub struct PtrType {
+    inner: Type,
+}
+
+impl PtrType {
+    fn new(inner: Type) -> PtrType {
+        PtrType { inner: inner }
+    }
+}
+
+///
+#[derive(Clone)]
+pub struct RefType {
+    inner: Type,
+}
+
+///
+#[derive(Clone)]
+pub struct RefExpr {
+    identifier: Identifier,
+    inner: Expr,
+}
+
+///
+#[derive(Clone)]
+pub struct StructExpr {
+    elements: Vec<(Variable, Expr)>,
     ty: Type,
 }
 
-impl _LambdaType {
-    fn new(formals: Vec<Type>, ty: Type) -> _LambdaType {
-        _LambdaType {
-            formals: formals,
+///
+#[derive(Clone)]
+pub struct StructType {
+    pub symbol: Symbol,
+    pub params: Types,
+    pub elements: Variables,
+}
+
+///
+#[derive(Clone)]
+pub struct Variable {
+    pub symbol: Symbol,
+    pub ty: Type,
+}
+
+impl Variable {
+    pub fn new(symbol: Symbol, ty: Type) -> Variable {
+        Variable {
+            symbol: symbol,
             ty: ty,
         }
     }
+}
 
-    fn formals(&self) -> &Vec<Type> {
-        &self.formals
-    }
-
-    fn formals_mut(&mut self) -> &mut Vec<Type> {
-        &mut self.formals
+impl Symbolise for Variable {
+    fn symbolise(&self) -> Symbol {
+        self.symbol.clone()
     }
 }
 
-impl Typedef for _LambdaType {
-    fn typedef(&self) -> Type {
-        self.ty.clone()
+///
+pub type Variables = Vec<Variable>;
+
+///
+#[derive(Clone)]
+pub struct VariableExpr {
+    variable: Variable,
+    parent: Exprs,
+}
+
+///
+#[derive(Clone)]
+pub struct VoidExpr {
+    identifier: Identifier,
+}
+
+impl VoidExpr {
+    pub fn new(identifier: Identifier) -> VoidExpr {
+        VoidExpr { identifier: identifier }
+    }
+}
+
+impl Identify for VoidExpr {
+    fn identify(&self) -> Identifier {
+        self.identifier.clone()
     }
 }
 
 ///
 #[derive(Clone)]
-pub struct LiteralExpr(Object<_LiteralExpr>);
+pub enum Expr {
+    Assign(Box<AssignExpr>),
+    Block(Box<BlockExpr>),
+    Call(Box<CallExpr>),
+    Deref(Box<DerefExpr>),
+    For(Box<ForExpr>),
+    If(Box<IfExpr>),
+    Item(Box<ItemExpr>),
+    Let(Box<LetExpr>),
+    Literal(Box<LiteralExpr>),
+    Process(Box<ProcessExpr>),
+    ProcessJoin(Box<ProcessJoinExpr>),
+    Struct(Box<StructExpr>),
+    Ref(Box<RefExpr>),
+    Variable(Box<VariableExpr>),
+    Void(Box<VoidExpr>),
+}
 
-impl LiteralExpr {
-    pub fn new(identifier: Identifier, literal: Literal) -> LiteralExpr {
-        LiteralExpr(object!(_LiteralExpr::new(identifier, literal)))
-    }
-
-    pub fn literal(&self) -> Literal {
-        object_proxy![self.0 => literal().clone()]
+impl From<AssignExpr> for Expr {
+    fn from(assign_expr: AssignExpr) -> Expr {
+        Expr::Assign(assign_expr.into())
     }
 }
 
+impl From<BlockExpr> for Expr {
+    fn from(block_expr: BlockExpr) -> Expr {
+        Expr::Block(block_expr.into())
+    }
+}
+
+impl From<CallExpr> for Expr {
+    fn from(call_expr: CallExpr) -> Expr {
+        Expr::Call(call_expr.into())
+    }
+}
+
+impl From<VoidExpr> for Expr {
+    fn from(void_expr: VoidExpr) -> Expr {
+        Expr::Void(void_expr.into())
+    }
+}
+
+///
+pub type Exprs = Vec<Expr>;
+
+///
 #[derive(Clone)]
-struct _LiteralExpr {
-    identifier: Identifier,
-    literal: Literal,
+pub enum Item {
+    Function(Box<Function>),
+    Module(Box<Module>),
+    Type(Box<Type>),
+    Variable(Box<Variable>),
 }
 
-impl _LiteralExpr {
-    fn new(identifier: Identifier, literal: Literal) -> _LiteralExpr {
-        _LiteralExpr {
-            identifier: identifier,
-            literal: literal,
-        }
-    }
-
-    fn literal(&self) -> &Literal {
-        &self.literal
+impl From<Function> for Item {
+    fn from(item: Function) -> Item {
+        Item::Function(item.into())
     }
 }
 
+impl From<Module> for Item {
+    fn from(item: Module) -> Item {
+        Item::Module(item.into())
+    }
+}
+
+impl From<Type> for Item {
+    fn from(item: Type) -> Item {
+        Item::Type(item.into())
+    }
+}
+
+impl From<Variable> for Item {
+    fn from(item: Variable) -> Item {
+        Item::Variable(item.into())
+    }
+}
+
+///
 #[derive(Clone)]
 pub enum Literal {
     Bool(bool),
+    Channel(Expr, Expr),
     Char(char),
     F32(f32),
     F64(f64),
@@ -574,6 +468,8 @@ pub enum Literal {
     I16(i16),
     I32(i32),
     I64(i64),
+    List(Exprs),
+    ListRange(Expr, Expr),
     Str(String),
     U8(u8),
     U16(u16),
@@ -584,405 +480,56 @@ pub enum Literal {
 
 ///
 #[derive(Clone)]
-pub struct Module(Object<_Module>);
-
-impl Module {
-    pub fn new(symbol: Symbol, functions: Functions) -> Module {
-        Module(object!(_Module::new(symbol, functions)))
-    }
-
-    pub fn add_function(&mut self, function: Function) {
-        object_proxy_mut![self.0 => add_function(function)]
-    }
-
-    pub fn for_functions<T, F: FnMut((&Identifier, &mut Function)) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => functions_mut().iter_mut() loop function {
-            f(function);
-        }]
-    }
-
-    pub fn map_functions<T, F: FnMut((&Identifier, &mut Function)) -> T>(&self, f: F) -> Vec<T> {
-        object_proxy_mut![self.0 => functions_mut().iter_mut().map(f).collect()]
-    }
-
-    pub fn num_functions(&self) -> usize {
-        object_proxy![self.0 => functions().len()]
-    }
-}
-
-impl Identify for Module {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Symbolise for Module {
-    fn symbolise(&self) -> Symbol {
-        object_proxy![self.0 => symbolise()]
-    }
-}
-
-#[derive(Clone)]
-pub struct _Module {
-    // identification
-    symbol: Symbol,
-
-    // functions defined in this module
-    functions: Functions,
-}
-
-impl _Module {
-    fn new(symbol: Symbol, functions: Functions) -> _Module {
-        _Module {
-            symbol: symbol,
-            functions: functions,
-        }
-    }
-
-    fn add_function(&mut self, function: Function) {
-        self.functions
-            .insert(function.identify().clone(), function);
-    }
-
-    fn functions(&self) -> &Functions {
-        &self.functions
-    }
-
-    fn functions_mut(&mut self) -> &mut Functions {
-        &mut self.functions
-    }
-}
-
-impl Identify for _Module {
-    fn identify(&self) -> Identifier {
-        self.symbol.identify()
-    }
-}
-
-impl Symbolise for _Module {
-    fn symbolise(&self) -> Symbol {
-        self.symbol.clone()
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct ProcessExpr(Object<_ProcessExpr>);
-
-impl ProcessExpr {
-    pub fn new(identifier: Identifier,
-               prelude_exprs: Exprs,
-               prelude_variables: Variables,
-               body: Exprs)
-               -> ProcessExpr {
-        ProcessExpr(object!(_ProcessExpr::new(identifier, prelude_exprs, prelude_variables, body)))
-    }
-
-    pub fn as_function(&self) -> Function {
-        let process = self.0.read().unwrap();
-        let process = process.borrow();
-        let block_expr = BlockExpr::new(Identifier::id(),
-                                        Expr::from(VoidExpr::new(Identifier::id())),
-                                        process.body().clone(),
-                                        Exprs::new());
-
-        Function::new(Symbol::new(format!("__libruntime__process_{}", process.id())),
-                      Variables::new(),
-                      Some(block_expr),
-                      LambdaType::new(Types::new(), Type::Primitive(PrimitiveType::Void)))
-    }
-}
-
-impl Identify for ProcessExpr {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-#[derive(Clone)]
-struct _ProcessExpr {
-    identifier: Identifier,
-    prelude_exprs: Exprs,
-    prelude_variables: Variables,
-    body: Exprs,
-}
-
-impl _ProcessExpr {
-    fn new(identifier: Identifier,
-           prelude_exprs: Exprs,
-           prelude_variables: Variables,
-           body: Exprs)
-           -> _ProcessExpr {
-        _ProcessExpr {
-            identifier: identifier,
-            prelude_exprs: prelude_exprs,
-            prelude_variables: prelude_variables,
-            body: body,
-        }
-    }
-
-    fn body(&self) -> &Exprs {
-        &self.body
-    }
-}
-
-impl Identify for _ProcessExpr {
-    fn identify(&self) -> Identifier {
-        self.identifier.clone()
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct ProcessJoinExpr(Object<_ProcessJoinExpr>);
-
-impl ProcessJoinExpr {
-    pub fn new(identifier: Identifier, process: ProcessExpr) -> ProcessJoinExpr {
-        ProcessJoinExpr(object!(_ProcessJoinExpr::new(identifier, process)))
-    }
-
-    pub fn process(&self) -> ProcessExpr {
-        object_proxy![self.0 => process().clone()]
-    }
-}
-
-#[derive(Clone)]
-struct _ProcessJoinExpr {
-    identifier: Identifier,
-    process: ProcessExpr,
-}
-
-impl _ProcessJoinExpr {
-    fn new(identifier: Identifier, process: ProcessExpr) -> _ProcessJoinExpr {
-        _ProcessJoinExpr {
-            identifier: identifier,
-            process: process,
-        }
-    }
-
-    fn process(&self) -> &ProcessExpr {
-        &self.process
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct PtrType(Object<_PtrType>);
-
-impl PtrType {
-    pub fn new(ty: Type) -> PtrType {
-        PtrType(object!(_PtrType::new(ty)))
-    }
-
-    pub fn ty(&self) -> Type {
-        object_proxy![self.0 => ty().clone()]
-    }
-}
-
-#[derive(Clone)]
-struct _PtrType {
-    ty: Type,
-}
-
-impl _PtrType {
-    fn new(ty: Type) -> _PtrType {
-        _PtrType { ty: ty }
-    }
-
-    fn ty(&self) -> &Type {
-        &self.ty
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct StructExpr(Object<_StructExpr>);
-
-impl StructExpr {
-    pub fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> StructExpr {
-        StructExpr(object!(_StructExpr::new(identifier, elements, ty)))
-    }
-}
-
-#[derive(Clone)]
-struct _StructExpr {
-    identifier: Identifier,
-    elements: Exprs,
-    ty: StructType,
-}
-
-impl _StructExpr {
-    fn new(identifier: Identifier, elements: Exprs, ty: StructType) -> _StructExpr {
-        _StructExpr {
-            identifier: identifier,
-            elements: elements,
-            ty: ty,
-        }
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct StructElementExpr(Object<_StructElementExpr>);
-
-impl StructElementExpr {
-    pub fn new(identifier: Identifier, target: Expr, index: u64) -> StructElementExpr {
-        StructElementExpr(object!(_StructElementExpr::new(identifier, target, index)))
-    }
-}
-
-#[derive(Clone)]
-struct _StructElementExpr {
-    identifier: Identifier,
-    target: Expr,
-    index: u64,
-}
-
-impl _StructElementExpr {
-    fn new(identifier: Identifier, target: Expr, index: u64) -> _StructElementExpr {
-        _StructElementExpr {
-            identifier: identifier,
-            target: target,
-            index: index,
-        }
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct StructType(Object<_StructType>);
-
-impl StructType {
-    pub fn new(elements: Variables) -> StructType {
-        StructType(object!(_StructType::new(elements)))
-    }
-
-    pub fn for_elements<T, F: FnMut(&mut Variable) -> T>(&self, mut f: F) {
-        object_proxy_mut![self.0 => elements_mut().iter_mut() loop element {
-            f(element);
-        }]
-    }
-
-    pub fn map_elements<T, F: FnMut(&mut Variable) -> T>(&self, f: F) -> Vec<T> {
-        object_proxy_mut![self.0 => elements_mut().iter_mut().map(f).collect()]
-    }
-
-    pub fn num_elements(&self) -> usize {
-        object_proxy![self.0 => elements().len()]
-    }
-}
-
-#[derive(Clone)]
-struct _StructType {
-    elements: Variables,
-}
-
-impl _StructType {
-    fn new(elements: Variables) -> _StructType {
-        _StructType { elements: elements }
-    }
-
-    fn elements(&self) -> &Variables {
-        &self.elements
-    }
-
-    fn elements_mut(&mut self) -> &mut Variables {
-        &mut self.elements
-    }
+pub enum PrimitiveType {
+    Bool,
+    Char,
+    F32,
+    F64,
+    I8,
+    I16,
+    I32,
+    I64,
+    Str,
+    U8,
+    U16,
+    U32,
+    U64,
+    USize,
+    Void,
 }
 
 ///
 #[derive(Clone)]
 pub enum Type {
-    Lambda(LambdaType),
-    Primitive(PrimitiveType),
-    Ptr(PtrType),
-    Struct(StructType),
+    Alias(Box<AliasType>),
+    Enum(Box<EnumType>),
+    Lambda(Box<LambdaType>),
+    Primitive(Box<PrimitiveType>),
+    Ptr(Box<PtrType>),
+    Ref(Box<RefType>),
+    Struct(Box<StructType>),
 }
+
+impl From<LambdaType> for Type {
+    fn from(ty: LambdaType) -> Type {
+        Type::Lambda(ty.into())
+    }
+}
+
+impl From<PrimitiveType> for Type {
+    fn from(ty: PrimitiveType) -> Type {
+        Type::Primitive(ty.into())
+    }
+}
+
+impl From<PtrType> for Type {
+    fn from(ty: PtrType) -> Type {
+        Type::Ptr(ty.into())
+    }
+}
+
+///
 pub type Types = Vec<Type>;
 
 ///
-#[derive(Clone)]
-pub struct Variable(Object<_Variable>);
-pub type Variables = Vec<Variable>;
-
-impl Variable {
-    pub fn new(symbol: Symbol, ty: Type) -> Variable {
-        Variable(object!(_Variable::new(symbol, ty)))
-    }
-}
-
-impl Typedef for Variable {
-    fn typedef(&self) -> Type {
-        object_proxy![self.0 => typedef()]
-    }
-}
-
-impl Identify for Variable {
-    fn identify(&self) -> Identifier {
-        object_proxy![self.0 => identify()]
-    }
-}
-
-impl Symbolise for Variable {
-    fn symbolise(&self) -> Symbol {
-        object_proxy![self.0 => symbolise()]
-    }
-}
-
-#[derive(Clone)]
-struct _Variable {
-    // identification
-    symbol: Symbol,
-
-    // type
-    ty: Type,
-}
-
-impl _Variable {
-    fn new(symbol: Symbol, ty: Type) -> _Variable {
-        _Variable {
-            symbol: symbol,
-            ty: ty,
-        }
-    }
-}
-
-impl Typedef for _Variable {
-    fn typedef(&self) -> Type {
-        self.ty.clone()
-    }
-}
-
-impl Identify for _Variable {
-    fn identify(&self) -> Identifier {
-        self.symbol.identify()
-    }
-}
-
-impl Symbolise for _Variable {
-    fn symbolise(&self) -> Symbol {
-        self.symbol.clone()
-    }
-}
-
-///
-#[derive(Clone)]
-pub struct VoidExpr(Object<_VoidExpr>);
-
-impl VoidExpr {
-    pub fn new(identifier: Identifier) -> VoidExpr {
-        VoidExpr(object!(_VoidExpr::new(identifier)))
-    }
-}
-
-#[derive(Clone)]
-struct _VoidExpr {
-    identifier: Identifier,
-}
-
-impl _VoidExpr {
-    fn new(identifier: Identifier) -> _VoidExpr {
-        _VoidExpr { identifier: identifier }
-    }
-}
+pub type TypeTable = HashMap<Identifier, Type>;

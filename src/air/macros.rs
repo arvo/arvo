@@ -1,54 +1,20 @@
 
-/// Send a message to a `Decl`. An immutable message cannot result in the
-/// modification of the `Decl`.
-#[macro_export]
-macro_rules! decl_proxy {
-    ($decl: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $decl {
-        Decl::Function(ref decl) => decl.$($method($($arg),*)).+,
-        Decl::Module(ref decl) => decl.$($method($($arg),*)).+,
-        Decl::Type(ref decl) => decl.$($method($($arg),*)).+,
-    });
-}
-
-/// Send a message to an `Expr`. An immutable message cannot result in the
-/// modification of the `Expr`.
-#[macro_export]
+/// Send a message to an `Item`. An immutable message cannot result in the
+/// modification of the `Item`.
 macro_rules! expr_proxy {
     ($expr: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $expr {
         Expr::Block(ref expr) => expr.$($method($($arg),*)).+,
         Expr::Call(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Def(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::For(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::If(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Item(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Literal(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Ref(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Struct(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::StructElement(ref expr) => expr.$($method($($arg),*)).+,
-        Expr::Void(ref expr) => expr.$($method($($arg),*)).+,
+        _ => unimplemented!()
     });
 }
 
 /// Send a message to an `Item`. An immutable message cannot result in the
 /// modification of the `Item`.
-#[macro_export]
 macro_rules! item_proxy {
     ($item: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $item {
         Item::Function(ref item) => item.$($method($($arg),*)).+,
         Item::Variable(ref item) => item.$($method($($arg),*)).+,
-    });
-}
-
-/// Send a message to a `Type`. An immutable message cannot result in the
-/// modification of the `Type`.
-#[macro_export]
-macro_rules! type_proxy {
-    ($ty: expr => $($method: ident ( $($arg: expr ),* )).+) => (match $ty {
-        Type::Lambda(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Primitive(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Ref(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Struct(ref ty) => ty.$($method($($arg),*)).+,
-        Type::Unresolved(ref ty) => ty.$($method($($arg),*)).+,
     });
 }
 
@@ -62,7 +28,6 @@ macro_rules! type_proxy {
 /// # Return
 /// An extern `Function` with a profile that matches the binary operator in
 /// the prelude library.
-#[macro_export]
 macro_rules! bin_fn {
     ($op_name: expr, $type_name: expr,  $type_expr: expr) => (
         Function::new(
@@ -70,30 +35,26 @@ macro_rules! bin_fn {
             Symbol::new(format!("__libprelude__{}_{}", $op_name, $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr), Variable::new(Symbol::new("y"), $type_expr)],
-            // return type of the function
+            // type profile of the function
             $type_expr,
             // definition of the function
-            None
+            None,
         )
     )
 }
 
-#[macro_export]
 macro_rules! add_fn {
     ($type_name: expr, $type_expr: expr) => (bin_fn!("add", $type_name, $type_expr))
 }
 
-#[macro_export]
 macro_rules! div_fn {
     ($type_name: expr, $type_expr: expr) => (bin_fn!("div", $type_name, $type_expr))
 }
 
-#[macro_export]
 macro_rules! mul_fn {
     ($type_name: expr, $type_expr: expr) => (bin_fn!("mul", $type_name, $type_expr))
 }
 
-#[macro_export]
 macro_rules! sub_fn {
     ($type_name: expr, $type_expr: expr) => (bin_fn!("sub", $type_name, $type_expr))
 }
@@ -107,7 +68,6 @@ macro_rules! sub_fn {
 /// # Return
 /// An extern `Function` with a profile that matches the concat operator for
 /// strings in  the prelude library.
-#[macro_export]
 macro_rules! concat_string_fn {
     ($type_name: expr,  $type_expr: expr) => (
         Function::new(
@@ -115,10 +75,10 @@ macro_rules! concat_string_fn {
             Symbol::new(format!("__libprelude__concat_string_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
-            // return type of the function
-            Type::Primitive(PrimitiveType::Str),
+            // type profile of the function
+            PrimitiveType::Str.into(),
             // definition of the function
-            None
+            None,
         )
     )
 }
@@ -132,7 +92,6 @@ macro_rules! concat_string_fn {
 /// # Return
 /// An extern `Function` with a profile that matches the write function in the
 /// prelude library.
-#[macro_export]
 macro_rules! write_fn {
     ($type_name: expr,  $type_expr: expr) => (
         Function::new(
@@ -140,10 +99,10 @@ macro_rules! write_fn {
             Symbol::new(format!("__libprelude__write_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
-            // return type of the function
-            Type::Primitive(PrimitiveType::Void),
+            // type profile of the function
+            PrimitiveType::Void.into(),
             // definition of the function
-            None
+            None,
         )
     )
 }
@@ -157,7 +116,6 @@ macro_rules! write_fn {
 /// # Return
 /// An extern `Function` with a profile that matches the writeln function in
 /// the prelude library.
-#[macro_export]
 macro_rules! writeln_fn {
     ($type_name: expr,  $type_expr: expr) => (
         Function::new(
@@ -165,10 +123,10 @@ macro_rules! writeln_fn {
             Symbol::new(format!("__libprelude__writeln_{}", $type_name)),
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
-            // return type of the function
-            Type::Primitive(PrimitiveType::Void),
+            // type profile of the function
+            PrimitiveType::Void.into(),
             // definition of the function
-            None
+            None,
         )
     )
 }
