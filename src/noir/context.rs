@@ -2,6 +2,7 @@ use super::*;
 use super::prelude::Prelude;
 use super::runtime::Runtime;
 
+#[derive(Clone)]
 pub struct Context {
     pub prelude: Prelude,
     pub runtime: Runtime,

@@ -13,7 +13,7 @@ pub mod noir;
 
 // Compiler passes are exported so that other libraries and binaries can use
 // them.
-// pub mod builder;
+pub mod builder;
 pub mod identifier;
 // pub mod normaliser;
 // pub mod parser;

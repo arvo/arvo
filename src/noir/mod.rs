@@ -6,7 +6,7 @@
 //! this stage of compilation, it is valid. Optimisation passes, and code
 //! generation passes, are done using NoIR.
 
-use super::identifier::{Identifier, Identify, Symbol, Symbolise};
+use super::identifier::{Identifier, Id, Identify, Name, Symbol, Symbolise};
 
 use std::collections::HashMap;
 
@@ -15,8 +15,6 @@ pub mod macros;
 pub mod context;
 pub mod prelude;
 pub mod runtime;
-
-pub use self::context::*;
 
 ///
 #[derive(Clone)]
@@ -38,29 +36,57 @@ pub struct BlockExpr {
     pub identifier: Identifier,
     pub prelude: Exprs,
     pub body: Exprs,
-    pub epilogue: Exprs,
     pub ret: Expr,
+    pub epilogue: Exprs,
     pub function_table: FunctionTable,
     pub module_table: ModuleTable,
     pub type_table: TypeTable,
 }
 
 impl BlockExpr {
-    pub fn new(identifier: Identifier,
-               prelude: Exprs,
-               body: Exprs,
-               epilogue: Exprs,
-               ret: Expr,
-               function_table: FunctionTable,
-               module_table: ModuleTable,
-               type_table: TypeTable)
-               -> BlockExpr {
+    pub fn new<P, E, B, R>(prelude: Vec<P>,
+                           epilogue: Vec<E>,
+                           body: Vec<B>,
+                           ret: R,
+                           function_table: FunctionTable,
+                           module_table: ModuleTable,
+                           type_table: TypeTable)
+                           -> BlockExpr
+        where P: Into<Expr>,
+              E: Into<Expr>,
+              B: Into<Expr>,
+              R: Into<Expr>
+    {
+        BlockExpr::new_with_id(Identifier::id(),
+                               prelude,
+                               epilogue,
+                               body,
+                               ret,
+                               function_table,
+                               module_table,
+                               type_table)
+    }
+
+    pub fn new_with_id<P, E, B, R>(identifier: Identifier,
+                                   prelude: Vec<P>,
+                                   epilogue: Vec<E>,
+                                   body: Vec<B>,
+                                   ret: R,
+                                   function_table: FunctionTable,
+                                   module_table: ModuleTable,
+                                   type_table: TypeTable)
+                                   -> BlockExpr
+        where P: Into<Expr>,
+              E: Into<Expr>,
+              B: Into<Expr>,
+              R: Into<Expr>
+    {
         BlockExpr {
             identifier: identifier,
-            prelude: prelude,
-            body: body,
-            epilogue: epilogue,
-            ret: ret,
+            prelude: prelude.into_iter().map(|expr| expr.into()).collect(),
+            epilogue: epilogue.into_iter().map(|expr| expr.into()).collect(),
+            body: body.into_iter().map(|expr| expr.into()).collect(),
+            ret: ret.into(),
             function_table: function_table,
             module_table: module_table,
             type_table: type_table,
@@ -86,11 +112,24 @@ pub struct CallExpr {
 }
 
 impl CallExpr {
-    pub fn new(identifier: Identifier, target: Expr, arguments: Exprs) -> CallExpr {
+    pub fn new<T, A>(target: T, arguments: Vec<A>) -> CallExpr
+        where T: Into<Expr>,
+              A: Into<Expr>
+    {
+        CallExpr::new_with_id(Identifier::id(), target, arguments)
+    }
+
+    pub fn new_with_id<T, A>(identifier: Identifier, target: T, arguments: Vec<A>) -> CallExpr
+        where T: Into<Expr>,
+              A: Into<Expr>
+    {
         CallExpr {
             identifier: identifier,
-            target: target,
-            arguments: arguments,
+            target: target.into(),
+            arguments: arguments
+                .into_iter()
+                .map(|argument| argument.into())
+                .collect(),
         }
     }
 }
@@ -129,7 +168,6 @@ pub struct ForExpr {
 struct _ForExpr {
     identifier: Identifier,
     variables: Variables,
-    
 }
 
 ///
@@ -139,16 +177,52 @@ pub struct Function {
     pub formals: Variables,
     pub ret: Type,
     pub body: Option<BlockExpr>,
+    pub mangled_name: String,
 }
 
 impl Function {
-    pub fn new(symbol: Symbol, formals: Variables, ret: Type, body: Option<BlockExpr>) -> Function {
+    pub fn new<S, F, R, B>(symbol: S, formals: Vec<F>, ret: R, body: B) -> Function
+        where S: Into<Symbol>,
+              F: Into<Variable>,
+              R: Into<Type>,
+              B: Into<Option<BlockExpr>>
+    {
+        let symbol = symbol.into();
         Function {
-            symbol: symbol,
-            formals: formals,
-            ret: ret,
-            body: body,
+            symbol: symbol.clone(),
+            formals: formals
+                .into_iter()
+                .map(|formal| formal.into())
+                .collect(),
+            ret: ret.into(),
+            body: body.into(),
+            mangled_name: symbol.name(),
         }
+    }
+
+    pub fn is_extern(&self) -> bool {
+        if let Some(..) = self.body {
+            false
+        } else {
+            true
+        }
+    }
+
+    pub fn is_void(&self) -> bool {
+        if let Type::Primitive(ref ty) = self.ret {
+            if let PrimitiveType::Void = *ty.as_ref() {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn lambda_type(&self) -> LambdaType {
+        LambdaType::new(self.formals
+                            .iter()
+                            .map(|formal| formal.ty.clone())
+                            .collect(),
+                        self.ret.clone())
     }
 }
 
@@ -182,22 +256,47 @@ pub struct IfExpr {
 ///
 #[derive(Clone)]
 pub struct ItemExpr {
-    identifier: Identifier,
-    item: Item,
+    pub identifier: Identifier,
+    pub item: Item,
+}
+
+impl ItemExpr {
+    pub fn new<I: Into<Item>>(item: I) -> ItemExpr {
+        ItemExpr::new_with_id(Identifier::id(), item)
+    }
+
+    pub fn new_with_id<I: Into<Item>>(identifier: Identifier, item: I) -> ItemExpr {
+        ItemExpr {
+            identifier: identifier,
+            item: item.into(),
+        }
+    }
+}
+
+impl Symbolise for ItemExpr {
+    fn symbolise(&self) -> Symbol {
+        self.item.symbolise()
+    }
 }
 
 ///
 #[derive(Clone)]
 pub struct LambdaType {
-    formals: Types,
-    ret: Type,
+    pub formals: Types,
+    pub ret: Type,
 }
 
 impl LambdaType {
-    pub fn new(formals: Types, ret: Type) -> LambdaType {
+    pub fn new<F, R>(formals: Vec<F>, ret: R) -> LambdaType
+        where F: Into<Type>,
+              R: Into<Type>
+    {
         LambdaType {
-            formals: formals,
-            ret: ret,
+            formals: formals
+                .into_iter()
+                .map(|formal| formal.into())
+                .collect(),
+            ret: ret.into(),
         }
     }
 }
@@ -215,6 +314,19 @@ pub struct LetExpr {
 pub struct LiteralExpr {
     pub identifier: Identifier,
     pub literal: Literal,
+}
+
+impl LiteralExpr {
+    pub fn new<L: Into<Literal>>(literal: L) -> LiteralExpr {
+        LiteralExpr::new_with_id(Identifier::id(), literal)
+    }
+
+    pub fn new_with_id<L: Into<Literal>>(identifier: Identifier, literal: L) -> LiteralExpr {
+        LiteralExpr {
+            identifier: identifier,
+            literal: literal.into(),
+        }
+    }
 }
 
 ///
@@ -267,6 +379,28 @@ pub struct ProcessExpr {
     pub body: Box<BlockExpr>,
 }
 
+impl ProcessExpr {
+    pub fn new<B: Into<Box<BlockExpr>>>(body: B) -> ProcessExpr {
+        ProcessExpr::new_with_id(Identifier::id(), body)
+    }
+
+    pub fn new_with_id<B: Into<Box<BlockExpr>>>(identifier: Identifier, body: B) -> ProcessExpr {
+        ProcessExpr {
+            identifier: identifier,
+            body: body.into(),
+        }
+    }
+
+    pub fn function(&self) -> Function {
+        Function::new(
+            Symbol::new(format!("__libruntime__process_{}", self.id())),
+            Variables::new(),
+            PrimitiveType::Void,
+            self.body.as_ref().clone(),
+        )
+    }
+}
+
 impl Identify for ProcessExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
@@ -280,6 +414,23 @@ pub struct ProcessJoinExpr {
     pub process_expr: Box<ProcessExpr>,
 }
 
+impl ProcessJoinExpr {
+    pub fn new<P>(process_expr: P) -> ProcessJoinExpr
+        where P: Into<Box<ProcessExpr>>
+    {
+        ProcessJoinExpr::new_with_id(Identifier::id(), process_expr)
+    }
+
+    pub fn new_with_id<P>(identifier: Identifier, process_expr: P) -> ProcessJoinExpr
+        where P: Into<Box<ProcessExpr>>
+    {
+        ProcessJoinExpr {
+            identifier: identifier,
+            process_expr: process_expr.into(),
+        }
+    }
+}
+
 impl Identify for ProcessJoinExpr {
     fn identify(&self) -> Identifier {
         self.identifier.clone()
@@ -289,19 +440,21 @@ impl Identify for ProcessJoinExpr {
 ///
 #[derive(Clone)]
 pub struct PtrType {
-    inner: Type,
+    pub inner: Type,
 }
 
 impl PtrType {
-    fn new(inner: Type) -> PtrType {
-        PtrType { inner: inner }
+    fn new<I>(inner: I) -> PtrType
+        where I: Into<Type>
+    {
+        PtrType { inner: inner.into() }
     }
 }
 
 ///
 #[derive(Clone)]
 pub struct RefType {
-    inner: Type,
+    pub inner: Type,
 }
 
 ///
@@ -334,11 +487,20 @@ pub struct Variable {
 }
 
 impl Variable {
-    pub fn new(symbol: Symbol, ty: Type) -> Variable {
+    pub fn new<S, T>(symbol: S, ty: T) -> Variable
+        where S: Into<Symbol>,
+              T: Into<Type>
+    {
         Variable {
-            symbol: symbol,
-            ty: ty,
+            symbol: symbol.into(),
+            ty: ty.into(),
         }
+    }
+}
+
+impl Identify for Variable {
+    fn identify(&self) -> Identifier {
+        self.symbol.identify()
     }
 }
 
@@ -365,7 +527,11 @@ pub struct VoidExpr {
 }
 
 impl VoidExpr {
-    pub fn new(identifier: Identifier) -> VoidExpr {
+    pub fn new() -> VoidExpr {
+        VoidExpr::new_with_id(Identifier::id())
+    }
+
+    pub fn new_with_id(identifier: Identifier) -> VoidExpr {
         VoidExpr { identifier: identifier }
     }
 }
@@ -414,6 +580,30 @@ impl From<CallExpr> for Expr {
     }
 }
 
+impl From<ItemExpr> for Expr {
+    fn from(item_expr: ItemExpr) -> Expr {
+        Expr::Item(item_expr.into())
+    }
+}
+
+impl From<LiteralExpr> for Expr {
+    fn from(literal_expr: LiteralExpr) -> Expr {
+        Expr::Literal(literal_expr.into())
+    }
+}
+
+impl From<ProcessExpr> for Expr {
+    fn from(process_expr: ProcessExpr) -> Expr {
+        Expr::Process(process_expr.into())
+    }
+}
+
+impl From<ProcessJoinExpr> for Expr {
+    fn from(process_join_expr: ProcessJoinExpr) -> Expr {
+        Expr::ProcessJoin(process_join_expr.into())
+    }
+}
+
 impl From<VoidExpr> for Expr {
     fn from(void_expr: VoidExpr) -> Expr {
         Expr::Void(void_expr.into())
@@ -430,6 +620,15 @@ pub enum Item {
     Module(Box<Module>),
     Type(Box<Type>),
     Variable(Box<Variable>),
+}
+
+impl Symbolise for Item {
+    fn symbolise(&self) -> Symbol {
+        match *self {
+            Item::Function(ref function) => function.symbolise(),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl From<Function> for Item {
@@ -460,7 +659,6 @@ impl From<Variable> for Item {
 #[derive(Clone)]
 pub enum Literal {
     Bool(bool),
-    Channel(Expr, Expr),
     Char(char),
     F32(f32),
     F64(f64),
@@ -468,8 +666,6 @@ pub enum Literal {
     I16(i16),
     I32(i32),
     I64(i64),
-    List(Exprs),
-    ListRange(Expr, Expr),
     Str(String),
     U8(u8),
     U16(u16),

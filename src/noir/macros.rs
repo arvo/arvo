@@ -29,15 +29,14 @@ macro_rules! item_proxy {
 /// An extern `Function` with a profile that matches the binary operator in
 /// the prelude library.
 macro_rules! bin_fn {
-    ($op_name: expr, $type_name: expr,  $type_expr: expr) => (
+    ($op_name: expr, $type_name: expr, $type_expr: expr) => (
         Function::new(
-            // symbol of the function
             Symbol::new(format!("__libprelude__{}_{}", $op_name, $type_name)),
-            // formals of the function
-            vec![Variable::new(Symbol::new("x"), $type_expr), Variable::new(Symbol::new("y"), $type_expr)],
-            // type profile of the function
+            vec![
+                Variable::new(Symbol::new("x"), $type_expr),
+                Variable::new(Symbol::new("y"), $type_expr)
+            ],
             $type_expr,
-            // definition of the function
             None,
         )
     )
@@ -76,7 +75,7 @@ macro_rules! concat_string_fn {
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
             // type profile of the function
-            PrimitiveType::Str.into(),
+            PrimitiveType::Str,
             // definition of the function
             None,
         )
@@ -100,7 +99,7 @@ macro_rules! write_fn {
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
             // type profile of the function
-            PrimitiveType::Void.into(),
+            PrimitiveType::Void,
             // definition of the function
             None,
         )
@@ -124,7 +123,7 @@ macro_rules! writeln_fn {
             // formals of the function
             vec![Variable::new(Symbol::new("x"), $type_expr)],
             // type profile of the function
-            PrimitiveType::Void.into(),
+            PrimitiveType::Void,
             // definition of the function
             None,
         )

@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
 
 [lib]
-name = "libruntime"
+name = "runtime"
 path = "lib.rs"
 crate-type = ["staticlib"]
 
