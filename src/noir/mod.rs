@@ -461,7 +461,7 @@ pub struct RefType {
 #[derive(Clone)]
 pub struct RefExpr {
     identifier: Identifier,
-    inner: Expr,
+    variable: Variable,
 }
 
 ///

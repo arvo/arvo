@@ -242,6 +242,72 @@ pub extern "C" fn __libprelude__add_usize(x: usize, y: usize) -> usize {
 
 #[no_mangle]
 #[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_f32(x: &mut f32, y: f32) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_f64(x: &mut f64, y: f64) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_i8(x: &mut i8, y: i8) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_i16(x: &mut i16, y: i16) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_i32(x: &mut i32, y: i32) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_i64(x: &mut i64, y: i64) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_u8(x: &mut u8, y: u8) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_u16(x: &mut u16, y: u16) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_u32(x: &mut u32, y: u32) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_u64(x: &mut u64, y: u64) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn __libprelude__addeq_usize(x: &mut usize, y: usize) {
+    *x = *x + y
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
 pub extern "C" fn __libprelude__mul_f32(x: f32, y: f32) -> f32 {
     x * y
 }

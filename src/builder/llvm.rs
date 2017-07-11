@@ -440,8 +440,8 @@ impl LLVMBuilder {
         // compile using clang
         let clang = Command::new("clang")
             .args(&[ld_out.as_str(),
-                    &format!("{}/libruntime.a", env::var("ARVO_LIB_PATH").unwrap()),
-                    &format!("{}/libprelude.a", env::var("ARVO_LIB_PATH").unwrap()),
+                    "./src/libruntime/target/debug/libruntime.a", // TODO: these are relative paths but should be in a config
+                    "./src/libprelude/target/debug/libprelude.a",
                     "-pthread",
                     "-ldl",
                     "-o",

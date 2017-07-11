@@ -46,6 +46,10 @@ macro_rules! add_fn {
     ($type_name: expr, $type_expr: expr) => (bin_fn!("add", $type_name, $type_expr))
 }
 
+macro_rules! addeq_fn {
+    ($type_name: expr, $type_expr: expr) => (bin_fn!("addeq", $type_name, $type_expr))
+}
+
 macro_rules! div_fn {
     ($type_name: expr, $type_expr: expr) => (bin_fn!("div", $type_name, $type_expr))
 }
