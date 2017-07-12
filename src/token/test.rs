@@ -1,5 +1,5 @@
 #[test]
-fn test_regex() {
+fn test_good_regex() {
     use super::Token::*;
 
     // Reserved keywords
@@ -81,4 +81,47 @@ fn test_regex() {
 
     // Comments
     assert!(Comment("This is a commment".to_string()).regex().is_match("// This is a commment\n"));
+}
+
+#[test]
+fn test_bad_regex() {
+    use super::Token::*;
+
+    // Reserved keywords
+    assert!(!As.regex().is_match("AS"));
+    assert!(!Else.regex().is_match("ELSE"));
+    assert!(!Extern.regex().is_match("EXTERN"));
+    assert!(!Expose.regex().is_match("EXPOSE"));
+    assert!(!For.regex().is_match("FOR"));
+    assert!(!Func.regex().is_match("FN"));
+    assert!(!If.regex().is_match("IF"));
+    assert!(!Import.regex().is_match("IMPORT"));
+    assert!(!In.regex().is_match("IN"));
+    assert!(!Module.regex().is_match("MODULE"));
+    assert!(!Mut.regex().is_match("MUT"));
+    assert!(!Ref.regex().is_match("REF"));
+    assert!(!Type.regex().is_match("TYPE"));
+
+    // Whitespace
+    assert!(!CarriageReturn.regex().is_match("\\r"));
+    assert!(!Newline.regex().is_match("\\n"));
+    assert!(!Tab.regex().is_match("\\t"));
+
+    // Literals
+    assert!(!Bool(true).regex().is_match("True"));
+    assert!(!Bool(true).regex().is_match("TRUE"));
+    assert!(!Bool(false).regex().is_match("False"));
+    assert!(!Bool(false).regex().is_match("FALSE"));
+    assert!(!Float(0.0).regex().is_match(".0"));
+    assert!(!Float(0.0).regex().is_match("0."));
+
+    // Idents
+    assert!(!Ident("0".to_string()).regex().is_match("0"));
+    assert!(!Ident("'".to_string()).regex().is_match("'"));
+    assert!(!Ident("ä".to_string()).regex().is_match("ä"));
+    assert!(!Ident(" ".to_string()).regex().is_match(" "));
+
+    // Comments
+    assert!(!Comment("This is not a commment".to_string()).regex().is_match("// This is not a commment"));
+    assert!(!Comment("This is not a commment".to_string()).regex().is_match("/* This is not a commment */\n"));
 }
