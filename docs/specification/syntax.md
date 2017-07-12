@@ -112,7 +112,7 @@ type_identifiers ::= type_identifier | type_identifiers "," type_identifier
 An expression is some behaviour that will result in a usable value.
 
 ```
-expr ::= literal_expr | operator_expr | call_expr | item_path_expr | if_expr | block_expr | for_expr | ref_expr | deref_expr | "(" expr ")"
+expr ::= literal_expr | operator_expr | call_expr | item_path_expr | if_expr | block_expr | let_expr | for_expr | ref_expr | deref_expr | assign_expr | "(" expr ")"
 expr_opt ::= | expr
 
 literal_expr ::= bool | char | float | integer | string | literal_channel_expr | literal_list_expr
@@ -123,7 +123,7 @@ literal_list_expr_exprs ::= expr | literal_list_expr_exprs "," expr
 
 operator_expr ::= expr bin_operator expr | pre_operator expr
 bin_operator ::= "+=" | "/=" | "*=" | "-=" | "+" | "-" | "/" | "*" | "=" | "<" | ">" | "<=" | ">="
-pre_operator ::= "<-" | "!"
+pre_operator ::= "<-" | "!" | "-"
 
 call_expr ::= call_target "(" call_argumets_opt ")"
 call_target ::= expr
@@ -150,6 +150,8 @@ for_formal ::= symbol
 
 ref_expr ::= "ref" expr
 deref_expr ::= "deref" expr
+
+assign_expr ::= symbol ":=" expr | "deref" symbol ":=" expr
 ```
 
 * All operators follow standard mathematical precedence and associativity.

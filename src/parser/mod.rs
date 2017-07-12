@@ -1,5 +1,8 @@
 //! # Parser
 
+#[cfg!(test)]
+mod test;
+
 use regex::Regex;
 
 /// The different tokens that can appear in Arvo source code.
