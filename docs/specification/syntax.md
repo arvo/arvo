@@ -1,158 +1,322 @@
-# Syntax Specification
+# Syntax
 
-> Work in progress.
+All source files must be UTF8 encoded.
 
-The grammar presented here is given in Backus–Naur form.
-
-## Module Declarations
-
-A module declaration defines a new module. If parsing a file, the starting point is `decls_opt` and the surrounding module declaration is implicit (eeah file is considered a module of the same name, and contains module declarations at the top level).
+## Comments
 
 ```
-module_decl ::= "module" symbol "{" decls_opt "}"
-decls_opt ::= | decls
-decls ::= decls decl
-decl ::= function_decl | function_profile_decl | module_decl | type_decl
+// TODO: Regex for comments
 ```
 
-## Function Declarations
-
-A function declaration defines a new function profile with an optional definition of its behaviour.
+## Identifiers
 
 ```
-function_decl ::= function_profile_decl "->" rhs_expr
-function_profile_decl ::= expose_opt extern_opt "fn" symbol "(" formals_opt ")" return_type_opt
-expose_opt ::= | "expose"
-extern_opt ::= | "extern"
-formals_opt ::= | formals
-formals ::= formals "," formal
-formal ::= symbol type_identifier
-return_type_opt ::= | type_identifier
+// TODO: Regex for identifiers and operators
 ```
 
-* If the `return_type` of the function is omitted, it is assumed to be void.
-
-## Type Declarations
-
-A type declaration defines a new type.
+## Literals
 
 ```
-type ::= type_struct | type_enum | type_alias
-type_params_opts ::= | type_params
-type_params ::= type_param | type_params type_param
-type_param ::= symbol
-
-type_struct ::= "type" symbol type_params_opt "{"
-    type_struct_fields_opt
-    comma_opt
-"}"
-type_struct_fields_opt ::= | type_struct_fields
-type_struct_fields ::= type_struct_field | type_struct_fields "," type_struct_field
-type_struct_field ::= expose_opt symbol type_identifier
-comma_opt ::= | ","
-expose_opt ::= | "expose"
-
-type_enum ::= "type" symbol type_params_opt "=" type_enum_variants
-type_enum_variants ::= type_enum_variant | type_enum_variants "|" type_enum_variant
-type_enum_variant ::= symbol type_params_opt
-                    | symbol type_params_opt "{" type_enum_variant_fields comma_opt "}"
-type_enum_variant_fields ::= type_enum_variant_field | type_enum_variant_fields "," type_enum_variant_field
-type_enum_variant_field ::= symbol type_identifier
-
-type_alias = "type" symbol type_params_opt "=" type_identifier
+// TODO: Regex for literals
 ```
 
-* The use of `type_identifier` cannot include `ref` or `mut ref`.
+## Module declarations
+
+All source files must begin with a module declaration.
 
 ```
-// declaring a struct
+module_decl ::= "module" identifier module_decl_statements_opt
+module_decl_statements_opt ::= module_decl_statements | ""
+module_decl_statements ::= module_decl_statements module_decl_statement
+                         | module_decl_statement
+module_decl_statement ::= type_decl
+                        | function_decl
+```
+
+## Type declarations
+
+```
+type_decl ::= expose_opt enum_decl 
+            | expose_opt struct_decl
+type_decl_params_opt ::= type_decl_params | ""
+type_decl_params ::= type_decl_params type_decl_param
+                   | type_decl_param
+type_decl_param ::= identifier
+
+
+enum_decl ::= "type" identifier type_decl_params_opt ":=" enum_decl_variants
+enum_decl_variants ::= enum_decl_variants "|" enum_decl_variant 
+                     | enum_decl_variant
+enum_decl_variant ::= identifier enum_decl_variant_fields_opt
+                    | identifier "{" struct_decl_fields "}"
+enum_decl_variant_fields_opt ::= enum_decl_variant_fields | ""
+enum_decl_variant_fields ::= enum_decl_variant_fields enum_decl_variant_field
+                           | enum_decl_variant_field
+enum_decl_variant_field ::= type_symbol
+
+
+struct_decl ::= "type" identifier type_decl_params_opt "{" struct_decl_fields_opt "}"
+              | "type" identifier type_decl_params_opt "{" struct_decl_fields "," "}"
+struct_decl_fields_opt ::= struct_decl_fields | ""
+struct_decl_fields ::= struct_decl_fields "," struct_decl_field
+                     | struct_decl_field
+struct_decl_field ::= identifier type_symbol
+
+
+expose_opt ::= "expose" | ""
+```
+
+### Examples
+
+Declarations for an `Option` type
+```arvo
+type Option a := Some a | Nil
+type Option a := Some { inner a } | Nil
+```
+
+Declarations for a `Point` type
+```arvo
+type Point {
+  x f64, y f64
+}
 type Point {
   x f64,
   y f64,
 }
+```
 
-// declaring a generic struct
-type List a {
-  items [a],
+## Type symbols
+
+```
+type_symbol ::= identifier type_symbols_opt
+              | tuple_type_symbol
+              | list_type_symbol
+              | channel_type_symbol
+              | optional_type_symbol
+type_symbols_opt ::= type_symbols | ""
+type_symbols ::= type_symbols type_symbol
+               | type_symbol
+
+
+tuple_type_symbol ::= "(" tuple_type_symbol_fields ")"
+tuple_type_symbol_fields ::= tuple_type_symbol_fields "," tuple_type_symbol_field
+                           | tuple_type_symbol_field
+tuple_type_symbol_field ::= type_symbol
+
+
+list_type_symbol ::= "[" type_symbol "]"
+
+
+channel_type_symbol ::= ".." type_symbol
+
+
+optional_type_symbol ::= type_symbol "?"
+```
+
+### Examples
+
+Declaring a type by instantiating the generic `Option` type that was declared
+above
+```arvo
+Option i64
+```
+
+Declaring a point in space by instantiating the generic tuple
+```arvo
+(f64, f64, f64)
+```
+
+Declaring a list of integers by instantiating the generic list
+```arvo
+[i64]
+```
+
+Declaring a channel of points by instantiating the generic channel
+```arvo
+..(f64, f64, f64)
+```
+
+Declaring a channel of integers
+```arvo
+..i64
+```
+
+Declaring a channel of optional integers
+```arvo
+..i64?
+```
+
+Declaring an optional channel of integers
+```arvo
+(..i64)?
+```
+
+Declaring an optional channel of optional integers
+```arvo
+(..i64?)?
+```
+
+## Function declarations
+
+```
+function_decl ::= expose_opt extern_opt "fn" identifier "(" function_decl_arguments_opt ")" type_symbol
+                | expose_opt extern_opt "fn" identifier "(" function_decl_arguments_opt ")" type_symbol "->" funtion_decl_body
+function_decl_arguments_opt ::= function_decl_arguments | ""
+function_decl_arguments ::= function_decl_arguments "," function_decl_argument
+                          | function_decl_argument
+function_decl_argument ::= identifier mut_opt ref_opt type_symbol
+funtion_decl_body ::= rhs_expr
+
+
+expose_opt ::= "expose" | ""
+extern_opt ::= "extern" | ""
+mut_opt ::= "mut" | ""
+ref_opt ::= "ref" | ""
+```
+
+### Examples
+
+Declaring the `writeln` function
+```arvo
+extern fn __libprelude__writeln_string(arg ref string) void
+expose fn writeln(arg ref string) void -> __libprelude__writeln_string(arg)
+```
+
+Declaring the `+=` function
+```arvo
+expose fn (+=)(x mut ref i64, y i64) void -> {
+  let tmp := deref x + y;
+  x := tmp
 }
-
-// declaring an enum
-type Colors = Red | Green | Blue | RGB { r u8, g u8, b u8 }
-
-// declaring a generic enum
-type Option a = Some a | Nil
-
-// declaring a type alias
-type Int64 = i64
-
-// declaring a unit struct
-type Unit {}
 ```
 
-## Type Identifiers
-
-A type identifier is used to access a type that is currently in scope.
+## Expressions
 
 ```
-type_identifier ::= symbol type_param_identifiers_opt
-                | "ref" type_identifier
-                | "mut ref" type_identifier
-                | "(" type_identifiers ")"
+rhs_expr ::= assign_expr
+           | block_expr
+           | call_expr
+           | channel_expr
+           | deref_expr
+           | for_expr
+           | if_expr
+           | item_expr
+           | list_expr
+           | literal_expr
+           | operator_expr
+           | ref_expr
+           | select_expr
+           | tuple_expr
+           | "(" rhs_expr ")"
+           | "(" ")"
 
-type_param_identifiers_opts ::= | type_param_identifiers
-type_param_identifiers ::= type_identifier | type_param_identifiers type_identifier
 
-type_identifiers ::= type_identifier | type_identifiers "," type_identifier
+assign_expr ::= lhs_pattern ":=" rhs_expr
+
+
+block_expr ::= "{" block_expr_statements_opt rhs_expr "}"
+block_expr_statements_opt ::= block_expr_statements | ""
+block_expr_statements ::= block_expr_statements block_expr_statement
+                        | block_expr_statement
+block_expr_statement ::= let_expr ";"
+                       | rhs_expr ";"
+                       | ";"
+
+
+call_expr ::= rhs_expr "(" call_expr_arguments_opt ")"
+call_expr_arguments_opt ::= call_expr_arguments | ""
+call_expr_arguments ::= call_expr_arguments "," call_expr_argument
+                      | call_expr_argument
+call_expr_argument ::= rhs_expr
+
+
+channel_expr ::= ".." rhs_expr
+               | rhs_expr ".." rhs_expr
+
+
+deref_expr ::= "deref" rhs_expr
+
+
+for_expr ::= "for" for_expr_items "in" for_expr_iterator block_expr
+for_expr_items ::= lhs_pattern
+                 | lhs_pattern "," identifier
+
+
+if_expr ::= "if" if_expr_condition block_expr
+          | "if" if_expr_condition block_expr "else" block_expr
+          | "if" if_expr_condition block_expr "else" if_expr
+
+
+item_expr ::= identifier
+            | item_expr_path "." identifier
+item_expr_path ::= rhs_expr
+
+
+let_expr ::= "let" mut_opt lhs_pattern type_symbol ":=" rhs_expr
+
+
+list_expr ::= "[" literal_tuple_expr_fields_opt "]"
+list_expr_fields_opt ::= list_expr_fields | ""
+list_expr_fields ::= list_expr_fields "," list_expr_field
+                   | list_expr_field
+list_expr_field ::= rhs_expr
+
+
+literal_expr ::= literal_bool_expr
+               | literal_char_expr
+               | literal_float_expr
+               | literal_integer_expr
+
+
+operator_expr ::= rhs_expr binary_operator rhs_expr
+                | prefix_operator rhs_expr
+                | rhs_expr suffix_operator
+
+
+ref_expr ::= "ref" rhs_expr
+
+
+select_expr ::= "select" "{" select_expr_guards "}"
+              | "select" "{" select_expr_guards "," "}" select_expr_else_opt
+select_expr_guards ::= select_expr_guards "," select_expr_guard
+select_expr_guards ::= "when" "<-" rhs_expr block_expr
+                     | "when" "<-" rhs_expr "as" lhs_pattern block_expr
+                     | "when" rhs_expr "<-" rhs_expr block_expr
+select_expr_else_opt ::= select_expr_else | ""
+select_expr_else ::= "else" block_expr
+
+tuple_expr ::= "(" tuple_expr_fields ")"
+tuple_expr_fields ::= tuple_expr_fields "," tuple_expr_field
+                    | tuple_expr_field
+tuple_expr_field ::= rhs_expr
+
+
+mut_opt ::= "mut" | ""
 ```
 
-* The definition of `type_identifier` includes the instantiation of generic type parameters.
+### Examples
 
-## Expr
-
-An expression is some behaviour that will result in a usable value.
+## Patterns
 
 ```
-expr ::= literal_expr | operator_expr | call_expr | item_path_expr | if_expr | block_expr | let_expr | for_expr | ref_expr | deref_expr | assign_expr | "(" expr ")"
-expr_opt ::= | expr
+lhs_pattern ::= list_pattern
+              | tuple_pattern
+              | variable_pattern
 
-literal_expr ::= bool | char | float | integer | string | literal_channel_expr | literal_list_expr
-literal_channel_expr ::= expr ".." expr
-literal_list_expr ::= "[" literal_list_expr_exprs_opt "]" | "[" expr ".." expr "]"
-literal_list_expr_exprs_opt ::= | literal_list_expr_exprs
-literal_list_expr_exprs ::= expr | literal_list_expr_exprs "," expr
+list_pattern ::= "[" list_pattern_fields_opt "]"
+list_pattern_fields_opt ::= list_pattern_fields | ""
+list_pattern_fields ::= list_pattern_fields "," list_pattern_field
+                      | list_pattern_field
+list_pattern_field ::= lhs_pattern
 
-operator_expr ::= expr bin_operator expr | pre_operator expr
-bin_operator ::= "+=" | "/=" | "*=" | "-=" | "+" | "-" | "/" | "*" | "=" | "<" | ">" | "<=" | ">="
-pre_operator ::= "<-" | "!" | "-"
 
-call_expr ::= call_target "(" call_argumets_opt ")"
-call_target ::= expr
-call_argumets_opt ::= | call_argumets
-call_arguments ::= expr | call_argumets "," expr
+tuple_pattern ::= "(" tuple_pattern_fields_opt ")"
+tuple_pattern_fields ::= tuple_pattern_fields "," tuple_pattern_field
+                      | tuple_pattern_field
+tuple_pattern_field ::= lhs_pattern
 
-item_path_expr ::= symbol | expr "." symbol
 
-if_expr ::= "if" if_condition block_expr
-          | "if" if_condition block_expr "else" block_expr
-          | "if" if_condition block_expr "else" if_expr
-if_condition ::= expr
-
-block_expr ::= "{" block_expr_exprs_opt expr_opt "}"
-block_expr_exprs_opt ::= | block_expr_exprs ";"
-block_expr_exprs ::= block_expr_expr | block_expr_exprs ";" block_expr_expr
-block_expr_expr ::= let_expr | expr
-
-let_expr ::= "let" mut_opt symbol ":=" expr
-
-for_expr ::= "for" for_formals "in" expr block_expr
-for_formals ::= for_formal | for_formals "," for_formal
-for_formal ::= symbol
-
-ref_expr ::= "ref" expr
-deref_expr ::= "deref" expr
-
-assign_expr ::= symbol ":=" expr | "deref" symbol ":=" expr
+variable_pattern ::= identifier
 ```
 
-* All operators follow standard mathematical precedence and associativity.
-* The `expr_opt` defaults to a void expression.
+### Examples

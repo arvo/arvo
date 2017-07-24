@@ -3,9 +3,7 @@
 //! The abstract syntax tree (AST) is the representation of the raw input,
 //! after it has been tokenised and parsed. The tokenisation process validates
 //! individual keywords and elements, and the parser checks that they are
-//! assembled in a way that is grammatically correct. At this stage, no
-//! semantic analysis has been done to ensure that the program is actually
-//! valid.
+//! assembled in a way that is grammatically correct.
 
 use super::identifier::{Identifier, Identify, Symbol, Symbolise};
 
