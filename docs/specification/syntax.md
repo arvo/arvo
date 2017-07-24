@@ -7,12 +7,48 @@ All source files must be UTF-8 encoded. The grammar is given in backus-naur form
 All source files must begin with a module declaration.
 
 ```
-module_decl ::= "module" identifier module_decl_statements_opt
-module_decl_statements_opt ::= module_decl_statements | ""
-module_decl_statements ::= module_decl_statements module_decl_statement
-                         | module_decl_statement
-module_decl_statement ::= type_decl
-                        | function_decl
+module_decl ::= "module" identifier module_statements_opt
+module_statements_opt ::= module_statements | ""
+module_statements ::= module_statements module_statement
+                    | module_statement
+module_statement ::= function_decl
+                   | type_decl
+```
+
+## Function declarations
+
+```
+function_decl ::= expose_opt extern_opt "fn" identifier "(" function_formals_opt ")" type
+                | expose_opt extern_opt "fn" identifier "(" function_formals_opt ")" type "->" funtion_body
+function_formals_opt ::= function_formals | ""
+function_formals ::= function_formals "," function_formal
+                   | function_formal
+function_formal ::= identifier mut_opt ref_opt type
+funtion_body ::= rhs_expr
+
+
+expose_opt ::= "expose" | ""
+extern_opt ::= "extern" | ""
+
+
+mut_opt ::= "mut" | ""
+ref_opt ::= "ref" | ""
+```
+
+### Examples
+
+Declaring the `writeln` function
+```arvo
+expose fn writeln(arg ref string) void -> __libprelude__writeln_string(arg)
+extern fn __libprelude__writeln_string(arg ref string) void
+```
+
+Declaring the `+=` function
+```arvo
+expose fn (+=)(x mut ref i64, y i64) void -> {
+  let tmp := deref x + y;
+  x := tmp;
+}
 ```
 
 ## Type declarations
@@ -20,29 +56,32 @@ module_decl_statement ::= type_decl
 ```
 type_decl ::= expose_opt enum_decl 
             | expose_opt struct_decl
-type_decl_params_opt ::= type_decl_params | ""
-type_decl_params ::= type_decl_params type_decl_param
-                   | type_decl_param
-type_decl_param ::= identifier
+type_params_opt ::= type_params | ""
+type_params ::= type_params type_param
+              | type_param
+type_param ::= identifier
 
 
-enum_decl ::= "type" identifier type_decl_params_opt ":=" enum_decl_variants
-enum_decl_variants ::= enum_decl_variants "|" enum_decl_variant 
-                     | enum_decl_variant
-enum_decl_variant ::= identifier enum_decl_variant_fields_opt
-                    | identifier "{" struct_decl_fields "}"
-enum_decl_variant_fields_opt ::= enum_decl_variant_fields | ""
-enum_decl_variant_fields ::= enum_decl_variant_fields enum_decl_variant_field
-                           | enum_decl_variant_field
-enum_decl_variant_field ::= type_symbol
+enum_decl ::= "type" identifier type_params_opt ":=" enum_variants
+enum_variants ::= enum_variants "|" enum_variant 
+                | enum_variant
+enum_variant ::= identifier enum_variant_fields_opt
+               | identifier "{" enum_variant_struct_fields "}"
+enum_variant_fields_opt ::= enum_variant_fields | ""
+enum_variant_fields ::= enum_variant_fields enum_variant_field
+                      | enum_variant_field
+enum_variant_field ::= type
+enum_variant_struct_fields ::= enum_variant_struct_fields "," enum_variant_struct_field
+                             | enum_variant_struct_field
+enum_variant_struct_field ::= identifier type
 
 
-struct_decl ::= "type" identifier type_decl_params_opt "{" struct_decl_fields_opt "}"
-              | "type" identifier type_decl_params_opt "{" struct_decl_fields "," "}"
-struct_decl_fields_opt ::= struct_decl_fields | ""
-struct_decl_fields ::= struct_decl_fields "," struct_decl_field
-                     | struct_decl_field
-struct_decl_field ::= identifier type_symbol
+struct_decl ::= "type" identifier type_params_opt "{" struct_fields_opt "}"
+              | "type" identifier type_params_opt "{" struct_fields "," "}"
+struct_fields_opt ::= struct_fields | ""
+struct_fields ::= struct_fields "," struct_field
+                | struct_field
+struct_field ::= expose_opt identifier type
 
 
 expose_opt ::= "expose" | ""
@@ -53,7 +92,7 @@ expose_opt ::= "expose" | ""
 Declarations for an `Option` type
 ```arvo
 type Option a := Some a | Nil
-type Option a := Some { inner a } | Nil
+type Option a := Some { expose inner a } | Nil
 ```
 
 Declarations for a `Point` type
@@ -70,29 +109,32 @@ type Point {
 ## Type symbols
 
 ```
-type_symbol ::= identifier type_symbols_opt
-              | tuple_type_symbol
-              | list_type_symbol
-              | channel_type_symbol
-              | optional_type_symbol
-type_symbols_opt ::= type_symbols | ""
-type_symbols ::= type_symbols type_symbol
-               | type_symbol
+type ::= channel_type
+       | list_type
+       | optional_type
+       | tuple_type
+       | unresolved_type
+types_opt ::= types | ""
+types ::= types type
+               | type
 
 
-tuple_type_symbol ::= "(" tuple_type_symbol_fields ")"
-tuple_type_symbol_fields ::= tuple_type_symbol_fields "," tuple_type_symbol_field
-                           | tuple_type_symbol_field
-tuple_type_symbol_field ::= type_symbol
+channel_type ::= ".." type
 
 
-list_type_symbol ::= "[" type_symbol "]"
+list_type ::= "[" type "]"
 
 
-channel_type_symbol ::= ".." type_symbol
+optional_type ::= type "?"
 
 
-optional_type_symbol ::= type_symbol "?"
+tuple_type ::= "(" tuple_type_fields ")"
+tuple_type_fields ::= tuple_type_fields "," tuple_type_field
+                           | tuple_type_field
+tuple_type_field ::= type
+
+
+unresolved_type ::= identifier types_opt
 ```
 
 ### Examples
@@ -136,40 +178,6 @@ Declaring an optional channel of integers
 Declaring an optional channel of optional integers
 ```arvo
 (..i64?)?
-```
-
-## Function declarations
-
-```
-function_decl ::= expose_opt extern_opt "fn" identifier "(" function_decl_arguments_opt ")" type_symbol
-                | expose_opt extern_opt "fn" identifier "(" function_decl_arguments_opt ")" type_symbol "->" funtion_decl_body
-function_decl_arguments_opt ::= function_decl_arguments | ""
-function_decl_arguments ::= function_decl_arguments "," function_decl_argument
-                          | function_decl_argument
-function_decl_argument ::= identifier mut_opt ref_opt type_symbol
-funtion_decl_body ::= rhs_expr
-
-
-expose_opt ::= "expose" | ""
-extern_opt ::= "extern" | ""
-mut_opt ::= "mut" | ""
-ref_opt ::= "ref" | ""
-```
-
-### Examples
-
-Declaring the `writeln` function
-```arvo
-extern fn __libprelude__writeln_string(arg ref string) void
-expose fn writeln(arg ref string) void -> __libprelude__writeln_string(arg)
-```
-
-Declaring the `+=` function
-```arvo
-expose fn (+=)(x mut ref i64, y i64) void -> {
-  let tmp := deref x + y;
-  x := tmp
-}
 ```
 
 ## Expressions
@@ -234,7 +242,7 @@ item_expr ::= identifier
 item_expr_path ::= rhs_expr
 
 
-let_expr ::= "let" mut_opt lhs_pattern type_symbol ":=" rhs_expr
+let_expr ::= "let" mut_opt lhs_pattern type ":=" rhs_expr
 
 
 list_expr ::= "[" literal_tuple_expr_fields_opt "]"
