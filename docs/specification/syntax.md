@@ -1,24 +1,6 @@
 # Syntax
 
-All source files must be UTF8 encoded.
-
-## Comments
-
-```
-// TODO: Regex for comments
-```
-
-## Identifiers
-
-```
-// TODO: Regex for identifiers and operators
-```
-
-## Literals
-
-```
-// TODO: Regex for literals
-```
+All source files must be UTF-8 encoded. The grammar is given in backus-naur form unless stated otherwise.
 
 ## Module declarations
 
@@ -317,6 +299,53 @@ tuple_pattern_field ::= lhs_pattern
 
 
 variable_pattern ::= identifier
+```
+
+### Examples
+
+## Comments
+
+Comments are defined by regular expressions. Comments are omitted from the grammar, as they are permitted at the end of any line, including empty lines.
+
+```
+comment ::= //(.)*\n
+```
+
+### Examples
+
+Any line that includes the double slash `//` will begin a line comment. If it includes a triple slash `///` then it still begins a line comment, but it will additionally document the node directly below (such comments are only allowed within a module).
+
+```arvo
+/// This comment documents the main module.
+module main
+
+/// This comment documents the main function.
+fn main() void -> {
+  // This comment does not document anything.
+  writeln("Hello, world!"); // This will print "Hello, world!".
+}
+```
+
+## Identifiers
+
+Identifiers and operators are defined by regular expressions.
+
+```
+identifier ::= [_a-zA-Z]([_a-zA-Z]|[0-9])*
+```
+
+### Examples
+
+## Literals
+
+Literals are defined by regular expressions.
+
+```
+literal_bool_expr ::= (true|false)
+literal_char_expr ::= '(\\'|[^']|\\u([0-9]|[ABCDEF]){4})?'
+literal_float_expr ::= [0-9]+\.[0-9]+
+literal_integer_expr ::= [0-9]+
+literal_string_expr ::= "(\\"|[^"])*"
 ```
 
 ### Examples

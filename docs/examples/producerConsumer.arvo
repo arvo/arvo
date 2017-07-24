@@ -1,0 +1,25 @@
+module main
+
+fn main() void -> {
+  let m := 3;
+  let n := 4;
+  let mut xs := ..;
+
+  for _ in 1 .. m {
+    producer(xs);
+  }
+
+  for _ in 1 .. n {
+    consumer(xs);
+  }
+}
+
+fn producer(xs mut ..i64) void ->
+  for x in 1 .. 100 {
+    xs <- x;
+  }
+
+fn consumer(xs ..i64) void ->
+  for x in xs {
+    writeln("read " ++ x);
+  }
