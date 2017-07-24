@@ -1,25 +1,32 @@
 module main
 
 fn main() void -> {
-  let m := 3;
-  let n := 4;
-  let mut xs := ..;
+  // Declare some configuration variables.
+  let m i64 := 3;
+  let n i64 := 4;
 
-  for _ in 1 .. m {
-    producer(xs);
-  }
+  // Declare an empty channel of integers.
+  let mut xs ..i64 := (..);
 
-  for _ in 1 .. n {
-    consumer(xs);
-  }
-}
+  // Spawn `m` concurrent producers.
+  for i in 1 .. m { producer(xs); }
 
+  // Spawn `n` concurrent consumers.
+  for i in 1 .. n { consumer(i, xs); }
+
+} // Automatically join all processes.
+
+/// The `producer` function will write `100` integers to a channel. Each `for`
+/// loop iteration is executed concurrently and so the order of these `100`
+/// writes is not guaranteed.
 fn producer(xs mut ..i64) void ->
   for x in 1 .. 100 {
     xs <- x;
   }
 
-fn consumer(xs ..i64) void ->
+/// The `consumer` function will read integers from a channel until the
+/// channel is closed. It will write each integer that it reads to stdout.
+fn consumer(id i64, xs ..i64) void ->
   for x in xs {
-    writeln("read " ++ x);
+    writeln(id ++ " reads " ++ x);
   }

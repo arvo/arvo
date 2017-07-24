@@ -1,5 +1,6 @@
 module main
 
 fn main() void -> {
+  // Write "Hello, world!" to stdout.
   writeln("Hello, world!");
 }
