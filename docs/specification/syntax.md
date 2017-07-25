@@ -208,9 +208,10 @@ block_expr ::= "{" block_expr_statements_opt rhs_expr "}"
 block_expr_statements_opt ::= block_expr_statements | ""
 block_expr_statements ::= block_expr_statements block_expr_statement
                         | block_expr_statement
-block_expr_statement ::= let_expr ";"
+block_expr_statement ::= let_statement ";"
                        | rhs_expr ";"
                        | ";"
+let_statement ::= "let" mut_opt lhs_pattern type ":=" rhs_expr
 
 
 call_expr ::= rhs_expr "(" call_expr_arguments_opt ")"
@@ -240,9 +241,6 @@ if_expr ::= "if" if_expr_condition block_expr
 item_expr ::= identifier
             | item_expr_path "." identifier
 item_expr_path ::= rhs_expr
-
-
-let_expr ::= "let" mut_opt lhs_pattern type ":=" rhs_expr
 
 
 list_expr ::= "[" literal_tuple_expr_fields_opt "]"
@@ -340,6 +338,7 @@ Identifiers and operators are defined by regular expressions.
 
 ```
 identifier ::= [_a-zA-Z]([_a-zA-Z]|[0-9])*
+operator ::= (\+|\+=|&&|:=|/|/=|=|<|<=||=|\*|\*=|\|\||<-|-|-=)
 ```
 
 ### Examples
