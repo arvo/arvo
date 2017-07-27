@@ -264,14 +264,14 @@ operator_expr ::= rhs_expr binary_operator rhs_expr
 ref_expr ::= "ref" rhs_expr
 
 
-select_expr ::= "select" "{" select_expr_guards "}"
-              | "select" "{" select_expr_guards "," "}" select_expr_else_opt
-select_expr_guards ::= select_expr_guards "," select_expr_guard
-select_expr_guards ::= "when" "<-" rhs_expr block_expr
-                     | "when" "<-" rhs_expr "as" lhs_pattern block_expr
-                     | "when" rhs_expr "<-" rhs_expr block_expr
+select_expr ::= "select" "{" select_guards "}"
+              | "select" "{" select_guards "," "}" select_expr_else_opt
 select_expr_else_opt ::= select_expr_else | ""
 select_expr_else ::= "else" block_expr
+select_guards ::= select_guards "," select_guard
+select_guards ::= "when" "<-" rhs_expr block_expr
+                | "when" "<-" rhs_expr "as" lhs_pattern block_expr
+                | "when" rhs_expr "<-" rhs_expr block_expr
 
 tuple_expr ::= "(" tuple_expr_fields ")"
 tuple_expr_fields ::= tuple_expr_fields "," tuple_expr_field

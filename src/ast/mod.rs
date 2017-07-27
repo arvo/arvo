@@ -1,9 +1,9 @@
 //! # Abstract Syntax Tree
 //!
-//! The abstract syntax tree (AST) is the representation of the raw input,
-//! after it has been tokenised and parsed. The tokenisation process validates
-//! individual keywords and elements, and the parser checks that they are
-//! assembled in a way that is grammatically correct.
+//! The abstract syntax tree (AST) is an intermediate representation of the 
+//! raw input after it has been tokenised and parsed. The AST may only be
+//! partially complete with respect to the raw input, because there may be
+//! errors in the raw input.
 
 use super::identifier::Identifier;
 
@@ -348,11 +348,38 @@ pub struct RefExpr {
 ///
 #[derive(Clone)]
 pub struct SelectExpr {
+    pub guards: SelectGuards,
+    pub else_block: Option<BlockExpr>,
 }
 
 ///
 #[derive(Clone)]
+pub enum SelectGuard {
+    Read(SelectReadGuard),
+    Write(SelectWriteGuard),
+}
+
+///
+#[derive(Clone)]
+pub struct SelectReadGuard {
+    pub rhs: Expr,
+    pub alias: Option<Identifier>,
+}
+
+///
+#[derive(Clone)]
+pub struct SelectWriteGuard {
+    pub lhs: Expr,
+    pub rhs: Expr,
+}
+
+///
+pub type SelectGuards = Vec<SelectGuard>;
+
+///
+#[derive(Clone)]
 pub struct TupleExpr {
+    pub fields: Exprs,
 }
 
 ///
@@ -375,7 +402,7 @@ pub type Patterns = Vec<Pattern>;
 #[derive(Clone)]
 pub enum ListPattern {
     Cons(ConsListPattern),
-    Item(ElementListPattern),
+    Enum(EnumListPattern),
 }
 
 ///
@@ -387,8 +414,8 @@ pub struct ConsListPattern {
 
 ///
 #[derive(Clone)]
-pub struct ElementListPattern {
-    pub elements: Patterns,
+pub struct EnumListPattern {
+    pub patterns: Patterns,
 }
 
 ///
@@ -399,5 +426,3 @@ pub struct TuplePattern {
 
 ///
 pub type VariablePattern = Identifier;
-
-
