@@ -6,8 +6,7 @@ use std::fmt;
 
 /// A Position represents an arbitrary source position. It includes the
 /// filename, line number, and column number.
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Position {
     filename: String,
     line: u64,

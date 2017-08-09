@@ -4,17 +4,8 @@ version = "0.0.0"
 authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
 
 [lib]
-name = "libarvo"
+name = "arvoc"
 path = "src/lib.rs"
-
-[dependencies.getopts]
-version = "*"
-
-[dependencies.lazy_static]
-version = "*"
-
-[dependencies.libc]
-version = "*"
 
 [dependencies.libprelude]
 path = "src/libprelude"
@@ -24,8 +15,11 @@ version = "*"
 path = "src/libruntime"
 version = "*"
 
-[dependencies.llvm-sys]
-version = "39"
+[dependencies]
+getopts = "*"
+lazy_static = "*"
+libc = "*"
+llvm-sys = "39"
+regex = "*"
 
-[dependencies.regex]
-version = "*"
+

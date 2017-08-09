@@ -33,7 +33,7 @@ You can use the `ref` keyword to declare a function that accepts arguments by re
 fn passByReference(arg ref string) void
 ```
 
-To prevent other functions from referencing a value, you can use the `mut ref` keywords to create a "*mut*able", or "*mut*ually exclusive", reference. Other references cannot exist alongide a `mut ref` and so they can be used to provide locking mechanisms around resources.
+To prevent other functions from referencing a value, you can use the `mut ref` keywords to create a "**mut**able", or "**mut**ually exclusive", reference. Other references cannot exist alongide a `mut ref` and so they can be used to provide locking mechanisms around resources.
 
 ```arvo
 fn increment(x mut ref i64, y i64) void -> x += y

@@ -1,67 +1,70 @@
 //! # Arvo
 
-extern crate libarvo;
+extern crate arvoc;
 extern crate getopts;
 
 use getopts::Options;
 use std::env;
-use std::process::{Command, Stdio};
-use std::io::{ErrorKind};
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
+    let arguments = env::args().collect::<Vec<_>>();
+    let config = parse_arguments(&arguments);
+    run(&config);
+}
 
+struct Config<'a> {
+    program_name: &'a String,
+    program_opts: Options,
+    program_subcommand: Option<String>,
+}
+
+fn parse_arguments<'a>(program_args: &'a Vec<String>) -> Config<'a> {
+
+    let name = &program_args[0];
     let mut opts = Options::new();
     opts.optflag("v", "version", "print the version of arvo");
     opts.optflag("h", "help", "print this help menu");
-    
-    run(&args, &program, &opts);
-}
 
-fn run(args: &Vec<String>, program: &String, opts: &Options) {
-    let matches = match opts.parse(&args[1..]) {
-        Ok(ok) => { ok }
-        Err(..) => { 
-            print_usage(program, opts);
-            return;
+    let mut config = Config {
+        program_name: name,
+        program_opts: opts,
+        program_subcommand: None,
+    };
+
+    let matches = match config.program_opts.parse(&program_args[1..]) {
+        Ok(ok) => ok,
+        Err(..) => {
+            print_usage(&config.program_name, &config.program_opts);
+            return config;
         }
     };
-    if matches.opt_present("h") {
-        print_usage(program, opts);
-        return;
-    }
-    if matches.opt_present("v") {
-        print_version();
-        return;
-    }
-    if !matches.free.is_empty() {
-        let mut command_dir = match env::current_exe() {
-            Ok(path) => path,
-            Err(err) => {
-                println!("{}", err);
-                return;
-            }
-        };
-        command_dir.pop();
-        let result = Command::new(format!("{}/{}", command_dir.to_str().unwrap(), &matches.free[0]))
-            .args(&args[2..])
-            .stdin(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .output();
-        match result {
-            Ok(..) => (),
-            Err(err) => {
-                if err.kind() == ErrorKind::NotFound {
-                    println!("Subcommand '{}' not found.\nSee'{} --help' for usage.", &matches.free[0], program);
-                } else {
-                    println!("{}", err);
-                }
-            },
-        };
+
+    config.program_subcommand = if matches.opt_present("h") {
+        Some("help".to_string())
+    } else if matches.opt_present("v") {
+        Some("version".to_string())
+    } else if !matches.free.is_empty() {
+        Some(matches.free[0].clone())
     } else {
-        print_usage(program, opts);
+        None
+    };
+
+    return config;
+}
+
+fn run(config: &Config) {
+    if let Some(ref subcommand) = config.program_subcommand {
+        if subcommand == "help" {
+            print_usage(&config.program_name, &config.program_opts);
+        } else if subcommand == "version" {
+            print_version();
+        } else if subcommand == "compile" {
+            unimplemented!()
+        } else {
+            print_usage(&config.program_name, &config.program_opts);
+        }
+    } else {
+        print_usage(&config.program_name, &config.program_opts);
     }
 }
 

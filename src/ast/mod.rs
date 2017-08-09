@@ -1,6 +1,6 @@
 //! # Abstract Syntax Tree
 //!
-//! The abstract syntax tree (AST) is an intermediate representation of the 
+//! The abstract syntax tree (AST) is an intermediate representation of the
 //! raw input after it has been tokenised and parsed. The AST may only be
 //! partially complete with respect to the raw input, because there may be
 //! errors in the raw input.
@@ -41,6 +41,23 @@ pub struct FunctionDecl {
     pub body: Option<Expr>,
 }
 
+impl FunctionDecl {
+    pub fn new<Ty>(is_extern: bool,
+                   formals: FunctionFormals,
+                   ret: Ty,
+                   body: Option<Expr>)
+                   -> FunctionDecl
+        where Ty: Into<Type>
+    {
+        FunctionDecl {
+            is_extern: is_extern,
+            formals: formals,
+            ret: ret.into(),
+            body: body,
+        }
+    }
+}
+
 ///
 #[derive(Clone)]
 pub struct FunctionFormal {
@@ -48,6 +65,19 @@ pub struct FunctionFormal {
     pub is_mut: bool,
     pub is_ref: bool,
     pub ty: Type,
+}
+
+impl FunctionFormal {
+    pub fn new<Ident>(identifier: Ident, is_mut: bool, is_ref: bool, ty: Type) -> FunctionFormal
+        where Ident: Into<Identifier>
+    {
+        FunctionFormal {
+            identifier: identifier.into(),
+            is_mut: is_mut,
+            is_ref: is_ref,
+            ty: ty,
+        }
+    }
 }
 
 ///
@@ -147,6 +177,13 @@ pub enum Type {
     Unresolved(Box<UnresolvedType>),
 }
 
+/// A `Type` can be created from an `UnresolvedType`.
+impl<Ty: Into<Box<UnresolvedType>>> From<Ty> for Type {
+    fn from(ty: Ty) -> Type {
+        Type::Unresolved(ty.into())
+    }
+}
+
 ///
 pub type Types = Vec<Type>;
 
@@ -179,6 +216,15 @@ pub struct TupleType {
 pub struct UnresolvedType {
     pub identifier: Identifier,
     pub generic_types: Types,
+}
+
+impl UnresolvedType {
+    pub fn string() -> UnresolvedType {
+        UnresolvedType {
+            identifier: "string".into(),
+            generic_types: Types::new(),
+        }
+    }
 }
 
 ///
@@ -259,8 +305,7 @@ pub struct DerefExpr {
 
 ///
 #[derive(Clone)]
-pub struct ForExpr {
-}
+pub struct ForExpr {}
 
 ///
 #[derive(Clone)]
@@ -275,6 +320,12 @@ pub struct IfExpr {
 pub struct ItemExpr {
     pub path: Expr,
     pub item: Identifier,
+}
+
+///
+#[derive(Clone)]
+pub struct ListExpr {
+    pub items: Exprs,
 }
 
 ///
@@ -384,8 +435,7 @@ pub struct TupleExpr {
 
 ///
 #[derive(Clone)]
-pub struct VoidExpr {
-}
+pub struct VoidExpr {}
 
 ///
 #[derive(Clone)]

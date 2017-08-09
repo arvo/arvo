@@ -115,6 +115,13 @@ impl From<*mut c_char> for Identifier {
     }
 }
 
+/// An `Identifier` can be created from a string.
+impl<'a> From<&'a str> for Identifier {
+    fn from(string: &'a str) -> Identifier {
+        Identifier::name(string.to_string())
+    }
+}
+
 /// An `Identifier` can be tested for equality. Equality is determined by the
 /// numerical id. The human-readble name is ignored.
 impl Eq for Identifier {}
