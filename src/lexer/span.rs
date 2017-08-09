@@ -6,7 +6,7 @@ use std::fmt;
 
 /// A Position represents an arbitrary source position. It includes the
 /// filename, line number, and column number.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Position {
     filename: String,
     line: u64,
@@ -63,8 +63,7 @@ impl fmt::Display for Position {
 
 /// A Span represents an arbitrary source range. It includes the beginning and
 /// ending Positions.
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Span {
     begin: Position,
     end: Position,
