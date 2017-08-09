@@ -58,6 +58,7 @@ pub enum Token {
     LambdaR,
     ParenL,
     ParenR,
+    Pipe,
     SemiColon,
     Whitespace,
 
@@ -99,6 +100,8 @@ impl Token {
                     Token::If
                 } else if capture.name("Import").is_some() {
                     Token::Import
+                } else if capture.name("In").is_some() {
+                    Token::In
                 } else if capture.name("Module").is_some() {
                     Token::Module
                 } else if capture.name("Mut").is_some() {
@@ -122,17 +125,19 @@ impl Token {
                     Token::Colon
                 } else if capture.name("Comma").is_some() {
                     Token::Comma
-                } else if capture.name("Dot").is_some() {
-                    Token::Dot
                 } else if capture.name("DotDot").is_some() {
                     Token::DotDot
+                } else if capture.name("Dot").is_some() {
+                    Token::Dot
                 } else if capture.name("LambdaR").is_some() {
                     Token::LambdaR
                 } else if capture.name("ParenL").is_some() {
                     Token::ParenL
                 } else if capture.name("ParenR").is_some() {
                     Token::ParenR
-                } else if capture.name("SemiColon").is_some() {
+                } else if capture.name("Pipe").is_some() {
+                    Token::Pipe
+                }else if capture.name("SemiColon").is_some() {
                     Token::SemiColon
                 } else if capture.name("Whitespace").is_some() {
                     Token::Whitespace
@@ -253,11 +258,12 @@ impl Token {
             r"(?P<BracketR>\])|",
             r"(?P<Colon>:)|",
             r"(?P<Comma>,)|",
-            r"(?P<Dot>\.)|",
             r"(?P<DotDot>\.\.)|",
+            r"(?P<Dot>\.)|",
             r"(?P<LambdaR>->)|",
             r"(?P<ParenL>\()|",
             r"(?P<ParenR>\))|",
+            r"(?P<Pipe>\|)|",
             r"(?P<SemiColon>;)|",
             r"(?P<Whitespace>( |\t|\n|\r)+)|",
 
@@ -332,6 +338,7 @@ impl fmt::Display for Token {
             LambdaR => write!(formatter, "->"),
             ParenL => write!(formatter, "("),
             ParenR => write!(formatter, ")"),
+            Pipe => write!(formatter, "|"),
             SemiColon => write!(formatter, ";"),
             Whitespace => write!(formatter, " "),
 
