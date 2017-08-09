@@ -376,3 +376,5 @@ impl fmt::Display for Token {
         }
     }
 }
+
+pub type Tokens = Vec<Token>;

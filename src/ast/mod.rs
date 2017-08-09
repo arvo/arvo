@@ -8,14 +8,24 @@
 use super::identifier::Identifier;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum Ast {
+    ModuleDecl(ModuleDecl),
+    FunctionDecl(FunctionDecl),
+    TypeDecl(TypeDecl),
+    Expr(Expr),
+    Nil,
+}
+
+///
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleDecl {
     pub identifier: Identifier,
     pub statements: ModuleStatements,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleStatement {
     pub is_expose: bool,
     pub identifier: Identifier,
@@ -26,14 +36,14 @@ pub struct ModuleStatement {
 pub type ModuleStatements = Vec<ModuleStatement>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ModuleStatementKind {
     Function(FunctionDecl),
     Type(TypeDecl),
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionDecl {
     pub is_extern: bool,
     pub formals: FunctionFormals,
@@ -59,7 +69,7 @@ impl FunctionDecl {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionFormal {
     pub identifier: Identifier,
     pub is_mut: bool,
@@ -84,7 +94,7 @@ impl FunctionFormal {
 pub type FunctionFormals = Vec<FunctionFormal>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TypeDecl {
     pub type_params: TypeParams,
     pub kind: TypeDeclKind,
@@ -97,14 +107,14 @@ pub type TypeParam = Identifier;
 pub type TypeParams = Vec<TypeParam>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TypeDeclKind {
     Enum(EnumDecl),
     Struct(StructDecl),
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumDecl {
     pub identifier: Identifier,
     pub params: TypeParams,
@@ -112,7 +122,7 @@ pub struct EnumDecl {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum EnumVariant {
     EnumTuple(EnumTupleVariant),
     EnumStruct(EnumStructVariant),
@@ -122,7 +132,7 @@ pub enum EnumVariant {
 pub type EnumVariants = Vec<EnumVariant>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumTupleVariant {
     pub identifier: Identifier,
     pub fields: EnumTupleVariantFields,
@@ -135,14 +145,14 @@ pub type EnumTupleVariantField = Type;
 pub type EnumTupleVariantFields = Vec<EnumTupleVariantField>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumStructVariant {
     pub identifier: Identifier,
     pub fields: EnumStructVariantFields,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumStructVariantField {
     pub identifier: Identifier,
     pub ty: Type,
@@ -152,7 +162,7 @@ pub struct EnumStructVariantField {
 pub type EnumStructVariantFields = Vec<EnumStructVariantField>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StructDecl {
     pub identifier: Identifier,
     pub params: TypeParams,
@@ -160,7 +170,7 @@ pub struct StructDecl {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StructFields {
     pub is_expose: bool,
     pub identifier: Identifier,
@@ -168,7 +178,7 @@ pub struct StructFields {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Type {
     Channel(Box<ChannelType>),
     List(Box<ListType>),
@@ -188,31 +198,31 @@ impl<Ty: Into<Box<UnresolvedType>>> From<Ty> for Type {
 pub type Types = Vec<Type>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ChannelType {
     pub generic_type: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ListType {
     pub generic_type: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OptionalType {
     pub generic_type: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TupleType {
     pub generic_types: Types,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct UnresolvedType {
     pub identifier: Identifier,
     pub generic_types: Types,
@@ -228,7 +238,7 @@ impl UnresolvedType {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Assign(Box<AssignExpr>),
     Block(Box<BlockExpr>),
@@ -251,21 +261,21 @@ pub enum Expr {
 pub type Exprs = Vec<Expr>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AssignExpr {
     pub lhs: Pattern,
     pub rhs: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlockExpr {
     pub statements: BlockStatements,
     pub ret: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum BlockStatement {
     Let(Box<LetStatement>),
     Expr(Box<Expr>),
@@ -275,7 +285,7 @@ pub enum BlockStatement {
 pub type BlockStatements = Vec<BlockStatement>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LetStatement {
     pub is_mut: bool,
     pub lhs: Pattern,
@@ -284,31 +294,31 @@ pub struct LetStatement {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CallExpr {
     pub target: Expr,
     pub arguments: Exprs,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ChannelExpr {
     pub begin: Option<Expr>,
     pub end: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DerefExpr {
     pub dereferent: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ForExpr {}
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IfExpr {
     pub condition: Expr,
     pub then_block: BlockExpr,
@@ -316,20 +326,20 @@ pub struct IfExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ItemExpr {
     pub path: Expr,
     pub item: Identifier,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ListExpr {
     pub items: Exprs,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum LiteralExpr {
     Bool(bool),
     Char(char),
@@ -339,7 +349,7 @@ pub enum LiteralExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OperatorExpr {
     Binary(Box<BinaryOperatorExpr>),
     Prefix(Box<PrefixOperatorExpr>),
@@ -347,7 +357,7 @@ pub enum OperatorExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BinaryOperatorExpr {
     pub operator: Operator,
     pub lhs: Expr,
@@ -355,21 +365,21 @@ pub struct BinaryOperatorExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PrefixOperatorExpr {
     pub operator: Operator,
     pub rhs: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SuffixOperatorExpr {
     pub operator: Operator,
     pub lhs: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Operator {
     Add,
     AddEq,
@@ -391,34 +401,34 @@ pub enum Operator {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RefExpr {
     pub referent: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SelectExpr {
     pub guards: SelectGuards,
     pub else_block: Option<BlockExpr>,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SelectGuard {
     Read(SelectReadGuard),
     Write(SelectWriteGuard),
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SelectReadGuard {
     pub rhs: Expr,
     pub alias: Option<Identifier>,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SelectWriteGuard {
     pub lhs: Expr,
     pub rhs: Expr,
@@ -428,17 +438,17 @@ pub struct SelectWriteGuard {
 pub type SelectGuards = Vec<SelectGuard>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TupleExpr {
     pub fields: Exprs,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct VoidExpr {}
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Pattern {
     List(Box<ListPattern>),
     Tuple(Box<TuplePattern>),
@@ -449,27 +459,27 @@ pub enum Pattern {
 pub type Patterns = Vec<Pattern>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ListPattern {
     Cons(ConsListPattern),
     Enum(EnumListPattern),
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ConsListPattern {
     pub head: Pattern,
     pub tail: Pattern,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumListPattern {
     pub patterns: Patterns,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TuplePattern {
     pub fields: Patterns,
 }
