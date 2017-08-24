@@ -36,13 +36,17 @@ fn passByReference(arg ref string) void
 To prevent other functions from referencing a value, you can use the `mut ref` keywords to create a "**mut**able", or "**mut**ually exclusive", reference. Other references cannot exist alongide a `mut ref` and so they can be used to provide locking mechanisms around resources.
 
 ```arvo
+fn (+=)(mut ref x i64, y i64) void -> {
+    let tmp i64 := deref x + y;
+    mut deref x = tmp;
+}
+
 fn increment(x mut ref i64, y i64) void -> x += y
 
 fn foo() i64 -> {
-    let mut x := 1;
+    let mut x i64 := 1;
     increment(mut ref x, 2);
     increment(mut ref x, 3);
-    x
 }
 
 fn main() void -> writeln(foo())

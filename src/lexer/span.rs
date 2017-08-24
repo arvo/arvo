@@ -9,8 +9,8 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Position {
     filename: String,
-    line: u64,
-    column: u64,
+    line: usize,
+    column: usize,
 }
 
 impl Position {
@@ -24,7 +24,7 @@ impl Position {
     ///
     /// # Return
     /// A new Position.
-    pub fn new<Filename>(filename: Filename, line: u64, column: u64) -> Position where Filename: ToString {
+    pub fn new<Filename>(filename: Filename, line: usize, column: usize) -> Position where Filename: ToString {
         Position {
             filename: filename.to_string(),
             line: line,
@@ -40,13 +40,13 @@ impl Position {
 
     /// # Return
     /// The line number of the Position.
-    pub fn line(&self) -> u64 {
+    pub fn line(&self) -> usize {
         self.line
     }
 
     /// # Return
     /// The column number of the Position.
-    pub fn column(&self) -> u64 {
+    pub fn column(&self) -> usize {
         self.column
     }
 }
@@ -89,10 +89,26 @@ impl Span {
     ///
     /// # Return
     /// A new Span, with new beginning and ending Positions.
-    pub fn new<Filename>(filename: Filename, begin_line: u64, begin_column: u64, end_line: u64, end_column: u64) -> Span where Filename: Clone + ToString {
+    pub fn new<Filename>(filename: Filename, begin_line: usize, begin_column: usize, end_line: usize, end_column: usize) -> Span where Filename: Clone + ToString {
         Span {
             begin: Position::new(filename.clone(), begin_line, begin_column),
             end: Position::new(filename.clone(), end_line, end_column)
+        }
+    }
+
+    /// Create a new Span from beginning and ending positions. The positions
+    /// are not guaranteed to have the same filename.
+    ///
+    /// # Arguments
+    /// * `begin` The beginning position.
+    /// * `end` The ending position.
+    ///
+    /// # Return
+    /// A new Span, with the beginning and ending Positions.
+    pub fn new_from_positions<Pos>(begin: Pos, end: Pos) -> Span where Pos: Into<Position> {
+        Span {
+            begin: begin.into(),
+            end: end.into()
         }
     }
 
@@ -107,4 +123,15 @@ impl Span {
     pub fn end(&self) -> &Position {
         &self.end
     }
+}
+
+pub trait Spanned {
+    fn set_span_begin(&mut self, begin: Position) {
+        self.span_mut().begin = begin;
+    }
+    fn set_span_end(&mut self, end: Position) {
+        self.span_mut().end = end;
+    }
+    fn span(&self) -> &Span;
+    fn span_mut(&mut self) -> &mut Span;
 }

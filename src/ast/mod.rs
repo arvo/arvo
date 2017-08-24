@@ -6,6 +6,7 @@
 //! errors in the raw input.
 
 use super::identifier::Identifier;
+use super::lexer::{Position, Span, Spanned};
 
 ///
 #[derive(Clone, Debug, PartialEq)]
@@ -28,8 +29,16 @@ pub struct ModuleDecl {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModuleStatement {
     pub is_expose: bool,
-    pub identifier: Identifier,
     pub kind: ModuleStatementKind,
+}
+
+impl ModuleStatement {
+    pub fn new(is_expose: bool, kind: ModuleStatementKind) -> ModuleStatement {
+        ModuleStatement {
+            is_expose: is_expose,
+            kind: kind,
+        }
+    }
 }
 
 ///
@@ -46,22 +55,38 @@ pub enum ModuleStatementKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionDecl {
     pub is_extern: bool,
+    pub identifier: Identifier,
+    pub func: Function,
+}
+
+impl FunctionDecl {
+    pub fn new<Ident, Func>(is_extern: bool, identifier: Ident, func: Func) -> FunctionDecl
+        where Ident: Into<Identifier>,
+              Func: Into<Function>
+    {
+        FunctionDecl {
+            is_extern: is_extern,
+            identifier: identifier.into(),
+            func: func.into(),
+        }
+    }
+}
+
+///
+#[derive(Clone, Debug, PartialEq)]
+pub struct Function {
     pub formals: FunctionFormals,
     pub ret: Type,
     pub body: Option<Expr>,
 }
 
-impl FunctionDecl {
-    pub fn new<Ty>(is_extern: bool,
-                   formals: FunctionFormals,
-                   ret: Ty,
-                   body: Option<Expr>)
-                   -> FunctionDecl
-        where Ty: Into<Type>
+impl Function {
+    pub fn new<Formals, Ty>(formals: Formals, ret: Ty, body: Option<Expr>) -> Function
+        where Formals: Into<FunctionFormals>,
+              Ty: Into<Type>
     {
-        FunctionDecl {
-            is_extern: is_extern,
-            formals: formals,
+        Function {
+            formals: formals.into(),
             ret: ret.into(),
             body: body,
         }
@@ -71,21 +96,20 @@ impl FunctionDecl {
 ///
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionFormal {
-    pub identifier: Identifier,
     pub is_mut: bool,
-    pub is_ref: bool,
+    pub identifier: Identifier,
     pub ty: Type,
 }
 
 impl FunctionFormal {
-    pub fn new<Ident>(identifier: Ident, is_mut: bool, is_ref: bool, ty: Type) -> FunctionFormal
-        where Ident: Into<Identifier>
+    pub fn new<Ident, Ty>(is_mut: bool, identifier: Ident, ty: Ty) -> FunctionFormal
+        where Ident: Into<Identifier>,
+              Ty: Into<Type>
     {
         FunctionFormal {
-            identifier: identifier.into(),
             is_mut: is_mut,
-            is_ref: is_ref,
-            ty: ty,
+            identifier: identifier.into(),
+            ty: ty.into(),
         }
     }
 }
@@ -96,6 +120,7 @@ pub type FunctionFormals = Vec<FunctionFormal>;
 ///
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeDecl {
+    pub identifier: Identifier,
     pub type_params: TypeParams,
     pub kind: TypeDeclKind,
 }
@@ -183,6 +208,8 @@ pub enum Type {
     Channel(Box<ChannelType>),
     List(Box<ListType>),
     Optional(Box<OptionalType>),
+    Ref(Box<Type>),
+    RefMut(Box<Type>),
     Tuple(Box<TupleType>),
     Unresolved(Box<UnresolvedType>),
 }
@@ -229,11 +256,21 @@ pub struct UnresolvedType {
 }
 
 impl UnresolvedType {
-    pub fn string() -> UnresolvedType {
+    pub fn new<Ident, Tys>(identifier: Ident, generic_types: Tys) -> UnresolvedType
+        where Ident: Into<Identifier>,
+              Tys: Into<Types>
+    {
         UnresolvedType {
-            identifier: "string".into(),
-            generic_types: Types::new(),
+            identifier: identifier.into(),
+            generic_types: generic_types.into(),
         }
+    }
+    pub fn string() -> UnresolvedType {
+        UnresolvedType::new("string", Types::new())
+    }
+
+    pub fn void() -> UnresolvedType {
+        UnresolvedType::new("void", Types::new())
     }
 }
 
@@ -257,6 +294,64 @@ pub enum Expr {
     Void(Box<VoidExpr>),
 }
 
+impl Spanned for Expr {
+    fn span(&self) -> &Span {
+        match *self {
+            Expr::Literal(ref expr) => expr.span(),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn span_mut(&mut self) -> &mut Span {
+        match *self {
+            Expr::Literal(ref mut expr) => expr.span_mut(),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+/// An `Expr` can be created from a `BlockExpr`.
+impl From<BlockExpr> for Expr {
+    fn from(expr: BlockExpr) -> Expr {
+        Expr::Block(expr.into())
+    }
+}
+
+/// An `Expr` can be created from a `Box<BlockExpr>`.
+impl From<Box<BlockExpr>> for Expr {
+    fn from(expr: Box<BlockExpr>) -> Expr {
+        Expr::Block(expr)
+    }
+}
+
+/// An `Expr` can be created from a `LiteralExpr`.
+impl From<LiteralExpr> for Expr {
+    fn from(expr: LiteralExpr) -> Expr {
+        Expr::Literal(expr.into())
+    }
+}
+
+/// An `Expr` can be created from a `Box<LiteralExpr>`.
+impl From<Box<LiteralExpr>> for Expr {
+    fn from(expr: Box<LiteralExpr>) -> Expr {
+        Expr::Literal(expr)
+    }
+}
+
+/// An `Expr` can be created from a `VoidExpr`.
+impl From<VoidExpr> for Expr {
+    fn from(expr: VoidExpr) -> Expr {
+        Expr::Void(expr.into())
+    }
+}
+
+/// An `Expr` can be created from a `Box<VoidExpr>`.
+impl From<Box<VoidExpr>> for Expr {
+    fn from(expr: Box<VoidExpr>) -> Expr {
+        Expr::Void(expr)
+    }
+}
+
 ///
 pub type Exprs = Vec<Expr>;
 
@@ -272,6 +367,18 @@ pub struct AssignExpr {
 pub struct BlockExpr {
     pub statements: BlockStatements,
     pub ret: Expr,
+}
+
+impl BlockExpr {
+    pub fn new<Stmts, Ret>(statements: Stmts, ret: Ret) -> BlockExpr
+        where Stmts: Into<BlockStatements>,
+              Ret: Into<Expr>
+    {
+        BlockExpr {
+            statements: statements.into(),
+            ret: ret.into(),
+        }
+    }
 }
 
 ///
@@ -341,11 +448,37 @@ pub struct ListExpr {
 ///
 #[derive(Clone, Debug, PartialEq)]
 pub enum LiteralExpr {
-    Bool(bool),
-    Char(char),
-    Float(f64),
-    Integer(i64),
-    Str(String),
+    Bool(bool, Span),
+    Char(char, Span),
+    Float(f64, Span),
+    Int(i64, Span),
+    Str(String, Span),
+}
+
+impl Spanned for LiteralExpr {
+    fn span(&self) -> &Span {
+        use self::LiteralExpr::*;
+
+        match *self {
+            Bool(_, ref span, ..) => span,
+            Char(_, ref span, ..) => span,
+            Float(_, ref span, ..) => span,
+            Int(_, ref span, ..) => span,
+            Str(_, ref span, ..) => span,
+        }
+    }
+
+    fn span_mut(&mut self) -> &mut Span {
+        use self::LiteralExpr::*;
+
+        match *self {
+            Bool(_, ref mut span, ..) => span,
+            Char(_, ref mut span, ..) => span,
+            Float(_, ref mut span, ..) => span,
+            Int(_, ref mut span, ..) => span,
+            Str(_, ref mut span, ..) => span,
+        }
+    }
 }
 
 ///
@@ -445,7 +578,17 @@ pub struct TupleExpr {
 
 ///
 #[derive(Clone, Debug, PartialEq)]
-pub struct VoidExpr {}
+pub struct VoidExpr {
+    span: Span,
+}
+
+impl VoidExpr {
+    pub fn new<S>(span: S) -> VoidExpr
+        where S: Into<Span>
+    {
+        VoidExpr { span: span.into() }
+    }
+}
 
 ///
 #[derive(Clone, Debug, PartialEq)]

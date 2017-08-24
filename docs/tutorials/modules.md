@@ -36,10 +36,10 @@ fn main() -> {
 The `as` keyword can be used to explicitly name a module when it is imported. By default, the module will be accessible by its declared name.
 
 ```
-import io as files
+import io as inputOutput
 
 fn main() -> {
-    let mut f = files.open("example.txt");
+    let mut f = inputOutput.open("example.txt");
     f.write("Hello, world!");
 }
 ```

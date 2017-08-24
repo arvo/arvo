@@ -11,28 +11,27 @@ module_decl ::= "module" identifier module_statements_opt
 module_statements_opt ::= module_statements | ""
 module_statements ::= module_statements module_statement
                     | module_statement
-module_statement ::= function_decl
-                   | type_decl
+module_statement ::= expose_opt function_decl
+                   | expose_opt type_decl
+
+
+expose_opt ::= "expose" | ""
 ```
 
 ## Function declarations
 
 ```
-function_decl ::= expose_opt extern_opt "fn" identifier "(" function_formals_opt ")" type
-                | expose_opt extern_opt "fn" identifier "(" function_formals_opt ")" type "->" funtion_body
+function_decl ::= extern_opt function
+function ::= "fn" identifier "(" function_formals_opt ")" type
+           | "fn" identifier "(" function_formals_opt ")" type "->" funtion_body
 function_formals_opt ::= function_formals | ""
 function_formals ::= function_formals "," function_formal
                    | function_formal
-function_formal ::= identifier mut_opt ref_opt type
+function_formal ::= identifier type
 funtion_body ::= rhs_expr
 
 
-expose_opt ::= "expose" | ""
 extern_opt ::= "extern" | ""
-
-
-mut_opt ::= "mut" | ""
-ref_opt ::= "ref" | ""
 ```
 
 ### Examples
@@ -54,8 +53,8 @@ expose fn (+=)(x mut ref i64, y i64) void -> {
 ## Type declarations
 
 ```
-type_decl ::= expose_opt enum_decl 
-            | expose_opt struct_decl
+type_decl ::= enum_decl 
+            | struct_decl
 type_params_opt ::= type_params | ""
 type_params ::= type_params type_param
               | type_param
@@ -114,6 +113,8 @@ type ::= channel_type
        | optional_type
        | tuple_type
        | unresolved_type
+       | "ref" type
+       | "mut" "ref" type
 types_opt ::= types | ""
 types ::= types type
                | type
@@ -208,9 +209,9 @@ block_expr ::= "{" block_expr_statements_opt rhs_expr "}"
 block_expr_statements_opt ::= block_expr_statements | ""
 block_expr_statements ::= block_expr_statements block_expr_statement
                         | block_expr_statement
-block_expr_statement ::= let_statement ";"
-                       | rhs_expr ";"
-                       | ";"
+block_expr_statement ::= let_statement "\n"
+                       | rhs_expr "\n"
+                       | "\n"
 let_statement ::= "let" mut_opt lhs_pattern type ":=" rhs_expr
 
 

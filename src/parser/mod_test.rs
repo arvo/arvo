@@ -1,80 +1,57 @@
 use super::*;
+use super::super::ast::{LiteralExpr};
+use super::super::lexer::{Span, Token};
 
 #[test]
-fn test_main() {
-    let source = r#"
-        fn main() -> {}
-    "#;
+fn parse_literals() {
+    assert_eq!(
+        parse_literal_bool_expr(&mut vec![
+            Token::Bool(true, Span::new("", 1, 1, 1, 4))
+        ]), 
+        Ok(LiteralExpr::Bool(true, Span::new("", 1, 1, 1, 4)))
+    );
+    assert_eq!(
+        parse_literal_char_expr(&mut vec![
+            Token::Char('ҧ', Span::new("", 1, 1, 1, 3))
+        ]), 
+        Ok(LiteralExpr::Char('ҧ', Span::new("", 1, 1, 1, 3)))
+    );
+    assert_eq!(
+        parse_literal_float_expr(&mut vec![
+            Token::Float(3.14, Span::new("", 1, 1, 1, 4))
+        ]), 
+        Ok(LiteralExpr::Float(3.14, Span::new("", 1, 1, 1, 4)))
+    );
+    assert_eq!(
+        parse_literal_integer_expr(&mut vec![
+            Token::Int(42, Span::new("", 1, 1, 1, 4))
+        ]), 
+        Ok(LiteralExpr::Int(42, Span::new("", 1, 1, 1, 4)))
+    );
+    assert_eq!(
+        parse_literal_string_expr(&mut vec![
+            Token::Str("你好".to_string(), Span::new("", 1, 1, 1, 6))
+        ]), 
+        Ok(LiteralExpr::Str("你好".to_string(), Span::new("", 1, 1, 1, 6)))
+    );
 }
 
 #[test]
-fn test_hello_world() {
-    let source = r#"
-        fn main() -> {
-            writeln("arvo");
-            writeln("pärt");
-        }
-    "#;
+fn parse_paren_exprs() {
+    assert_eq!(
+        parse_paren_expr(&mut vec![
+            Token::ParenL(Span::new("", 1, 1, 1, 1)),
+            Token::ParenR(Span::new("", 1, 2, 1, 2))
+        ]), 
+        Ok(VoidExpr::new(Span::new("", 1, 1, 1, 2)).into())
+    );
+    assert_eq!(
+        parse_paren_expr(&mut vec![
+            Token::ParenL(Span::new("", 1, 1, 1, 1)),
+            Token::Int(1, Span::new("", 1, 2, 1, 2)),
+            Token::ParenR(Span::new("", 1, 3, 1, 3))
+        ]), 
+        Ok(LiteralExpr::Int(1, Span::new("", 1, 1, 1, 3)).into())
+    );
 }
 
-#[test]
-fn test_if() {
-    let source = r#"
-        fn main() -> {
-            if readln() = "arvo" {
-                writeln("you said arvo");
-            } else {
-                writeln("you did not say arvo");
-            }
-        }
-    "#;
-}
-
-#[test]
-fn test_for() {
-    let source = r#"
-        fn main() -> {
-            for i in 1 .. 100 {
-                writeln(i);
-            }
-        }
-    "#;
-}
-
-#[test]
-fn test_producer_consumer() {
-    let source = r#"
-        fn main() -> {
-            let m := 3;
-            let n := 4;
-            let xs := .. ();
-            for _ in 1 .. m {
-                producer(xs);
-            };
-            for _ in 1 .. n {
-                consumer(xs);
-            };
-        }
-
-        fn producer(mut xs ..i64) -> 
-            for x in 1 .. 100 {
-                xs <- x;
-            }
-
-        fn consumer(xs ..i64) -> 
-            for x in xs {
-                writeln(xs);
-            }
-    "#;
-}
-
-#[test]
-fn test_increment() {
-    let source = r#"
-        fn main() -> {
-            let mut x := 1;
-            x += 2;
-            x += 3;
-        }
-    "#;
-}

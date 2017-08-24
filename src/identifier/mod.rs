@@ -115,10 +115,17 @@ impl From<*mut c_char> for Identifier {
     }
 }
 
-/// An `Identifier` can be created from a string.
+/// An `Identifier` can be created from a `&str`.
 impl<'a> From<&'a str> for Identifier {
     fn from(string: &'a str) -> Identifier {
         Identifier::name(string.to_string())
+    }
+}
+
+/// An `Identifier` can be created from a `String`.
+impl From<String> for Identifier {
+    fn from(string: String) -> Identifier {
+        Identifier::name(string)
     }
 }
 
