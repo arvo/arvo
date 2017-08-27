@@ -10,6 +10,28 @@ use std::str::FromStr;
 
 use super::span::{Span, Spanned};
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Precedence(u8);
+
+impl Precedence {
+
+    pub fn new(prec: u8) -> Precedence {
+        Precedence(prec)
+    }
+
+    pub fn lowest() -> Precedence {
+        Precedence(0)
+    }
+
+    pub fn highest() -> Precedence {
+        Precedence(255)
+    }
+
+    pub fn next(&self) -> Precedence {
+        Precedence::new(self.0 + 1)
+    }
+}
+
 /// A Token represents a lexical token in the Arvo programming language. It
 /// includes the values of literals, identifiers, and comments.
 #[derive(PartialEq, Clone, Debug)]
@@ -37,6 +59,7 @@ pub enum Token {
     Div(Span),
     DivEq(Span),
     Equal(Span),
+    NotEqual(Span),
     GreaterThan(Span),
     GreaterThanEq(Span),
     LessThan(Span),
@@ -295,6 +318,7 @@ impl Token {
             r"(?P<Div>/)|",
             r"(?P<DivEq>/=)|",
             r"(?P<Equal>=)|",
+            r"(?P<NotEqual>\!=)|",
             r"(?P<LessThan><)|",
             r"(?P<LessThanEq><=)|",
             r"(?P<GreaterThan>>)|",
@@ -322,6 +346,26 @@ impl Token {
             // Unexpected
             r"(.)",
         )).unwrap()
+    }
+
+    pub fn precedence(&self) -> Precedence {
+        use self::Token::*;
+
+        match *self {
+            Or(..) => Precedence(1),
+            And(..) => Precedence(2),
+            Equal(..) |
+            NotEqual(..) |
+            LessThan(..) |
+            LessThanEq(..) |
+            GreaterThan(..) |
+            GreaterThanEq(..) => Precedence(3),
+            Add(..) |
+            Sub(..) => Precedence(4),
+            Mul(..) |
+            Div(..) => Precedence(5),
+            _ => Precedence::lowest(),
+        }
     }
 
     pub fn is_whitespace(&self) -> bool {
@@ -379,6 +423,7 @@ impl Spanned for Token {
             Div(ref span, ..) => span,
             DivEq(ref span, ..) => span,
             Equal(ref span, ..) => span,
+            NotEqual(ref span, ..) => span,
             GreaterThan(ref span, ..) => span,
             GreaterThanEq(ref span, ..) => span,
             LessThan(ref span, ..) => span,
@@ -450,6 +495,7 @@ impl Spanned for Token {
             Assign(ref mut span, ..) => span,
             Div(ref mut span, ..) => span,
             DivEq(ref mut span, ..) => span,
+            NotEqual(ref mut span, ..) => span,
             Equal(ref mut span, ..) => span,
             GreaterThan(ref mut span, ..) => span,
             GreaterThanEq(ref mut span, ..) => span,
@@ -524,6 +570,7 @@ impl fmt::Display for Token {
             Assign(..) => write!(formatter, ":="),
             Div(..) => write!(formatter, "/"),
             DivEq(..) => write!(formatter, "/="),
+            NotEqual(..) => write!(formatter, "!="),
             Equal(..) => write!(formatter, "="),
             GreaterThan(..) => write!(formatter, ">"),
             GreaterThanEq(..) => write!(formatter, ">="),

@@ -37,16 +37,16 @@ To prevent other functions from referencing a value, you can use the `mut ref` k
 
 ```arvo
 fn (+=)(mut ref x i64, y i64) void -> {
-    let tmp i64 := deref x + y;
-    mut deref x = tmp;
+    let tmp i64 := deref x + y
+    mut deref x = tmp
 }
 
 fn increment(x mut ref i64, y i64) void -> x += y
 
 fn foo() i64 -> {
-    let mut x i64 := 1;
-    increment(mut ref x, 2);
-    increment(mut ref x, 3);
+    let mut x i64 := 1
+    increment(mut ref x, 2)
+    increment(mut ref x, 3)
 }
 
 fn main() void -> writeln(foo())

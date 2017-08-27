@@ -310,6 +310,20 @@ impl Spanned for Expr {
     }
 }
 
+/// An `Expr` can be created from a `BinaryOperatorExpr`.
+impl From<BinaryOperatorExpr> for Expr {
+    fn from(expr: BinaryOperatorExpr) -> Expr {
+        Expr::Operator(Box::new(OperatorExpr::Binary(expr.into())))
+    }
+}
+
+/// An `Expr` can be created from a `Box<BlockExpr>`.
+impl From<Box<BinaryOperatorExpr>> for Expr {
+    fn from(expr: Box<BinaryOperatorExpr>) -> Expr {
+        Expr::Operator(Box::new(OperatorExpr::Binary(expr)))
+    }
+}
+
 /// An `Expr` can be created from a `BlockExpr`.
 impl From<BlockExpr> for Expr {
     fn from(expr: BlockExpr) -> Expr {
@@ -495,6 +509,20 @@ pub struct BinaryOperatorExpr {
     pub operator: Operator,
     pub lhs: Expr,
     pub rhs: Expr,
+}
+
+impl BinaryOperatorExpr {
+    pub fn new<Op, LHS, RHS>(operator: Op, lhs: LHS, rhs: RHS) -> BinaryOperatorExpr
+        where Op: Into<Operator>,
+              LHS: Into<Expr>,
+              RHS: Into<Expr>
+    {
+        BinaryOperatorExpr {
+            operator: operator.into(),
+            lhs: lhs.into(),
+            rhs: rhs.into(),
+        }
+    }
 }
 
 ///

@@ -6,151 +6,189 @@ pub mod mod_test;
 #[macro_use]
 pub mod macros;
 
-use super::lexer::{Position, Span, Spanned, Token, Tokens};
+use super::lexer::{Position, Span, Spanned, Token, Tokens, Precedence};
 use super::ast::*;
 
-//
-pub fn parse_expr(tokens: &mut Tokens) -> ParseResult<Expr> {
-    try_parse!(
-        parse_literal_expr(tokens)
-    )
+pub struct Parser {
+    cursor: usize,
+    tokens: Tokens,
+    errors: Vec<String>,
 }
 
-//
-pub fn parse_paren_expr(tokens: &mut Tokens) -> ParseResult<Expr> {
+impl Parser {
 
-    // consume the '(' token
-    let parenl = match eat_token!(Token::ParenL(..) in tokens) {
-        Some(parenl) => parenl,
-        _ => return Err(ParseError::new("expected '('", Span::new("", 0, 0, 0, 0))),
-    };
-
-    // if the next token is ')' then this is a void expression
-    match eat_token!(Token::ParenR(..) in tokens) {
-        Some(parenr) => {
-            // return the void expression
-            return Ok(VoidExpr::new(Span::new_from_positions(
-                parenl.span().begin().clone(),
-                parenr.span().end().clone()
-            )).into());
-        }
-        _ => (),
-    };
-
-    // otherwise parse the inner expression
-    let result = parse_expr(tokens);
-    match result {
-        // expect a closing ')'
-        Ok(mut expr) => match eat_token!(Token::ParenR(..) in tokens) {
-            Some(parenr) => {
-                // adjust the span of the inner expression
-                expr.set_span_begin(parenl.span().begin().clone());
-                expr.set_span_end(parenr.span().end().clone());
-                // return the inner expression
-                return Ok(expr);
-            }
-            None => Err(ParseError::new("expected ')", Span::new("", 0, 0, 0, 0))),
-        },
-        // or, ignore all tokens until the closing ')'
-        Err(..) => match eat_tokens_until!(Token::ParenR(..) in tokens) {
-            None => Err(ParseError::new("expected ')'", Span::new("", 0, 0, 0, 0))),
-            _ => result,
-        },
-    }
-}
-
-//
-pub fn parse_literal_expr(tokens: &mut Tokens) -> ParseResult<LiteralExpr> {
-    try_parse!(
-        parse_literal_bool_expr(tokens),
-        parse_literal_char_expr(tokens),
-        parse_literal_float_expr(tokens),
-        parse_literal_integer_expr(tokens),
-        parse_literal_string_expr(tokens)
-    )
-}
-
-//
-pub fn parse_literal_bool_expr(tokens: &mut Tokens) -> ParseResult<LiteralExpr> {
-    let token = eat_token!(Token::Bool(..) in tokens);
-    match token {
-        Some(Token::Bool(val, span, ..)) => Ok(LiteralExpr::Bool(val, span)),
-        Some(token) => Err(ParseError::new("expected bool literal", Span::new("", 0, 0, 0, 0))),
-        _ => Err(ParseError::new("expected bool literal", Span::new("", 0, 0, 0, 0))),
-    }
-}
-
-//
-pub fn parse_literal_char_expr(tokens: &mut Tokens) -> ParseResult<LiteralExpr> {
-    let token = eat_token!(Token::Char(..) in tokens);
-    match token {
-        Some(Token::Char(val, span, ..)) => Ok(LiteralExpr::Char(val, span)),
-        Some(token) => Err(ParseError::new("expected char literal", Span::new("", 0, 0, 0, 0))),
-        _ => Err(ParseError::new("expected char literal", Span::new("", 0, 0, 0, 0))),
-    }
-}
-
-//
-pub fn parse_literal_float_expr(tokens: &mut Tokens) -> ParseResult<LiteralExpr> {
-    let token = eat_token!(Token::Float(..) in tokens);
-    match token {
-        Some(Token::Float(val, span, ..)) => Ok(LiteralExpr::Float(val, span)),
-        Some(token) => Err(ParseError::new("expected float literal", Span::new("", 0, 0, 0, 0))),
-        _ => Err(ParseError::new("expected float literal", Span::new("", 0, 0, 0, 0))),
-    }
-}
-
-//
-pub fn parse_literal_integer_expr(tokens: &mut Tokens) -> ParseResult<LiteralExpr> {
-    let token = eat_token!(Token::Int(..) in tokens);
-    match token {
-        Some(Token::Int(val, span, ..)) => Ok(LiteralExpr::Int(val, span)),
-        Some(token) => Err(ParseError::new("expected integer literal", Span::new("", 0, 0, 0, 0))),
-        _ => Err(ParseError::new("expected integer literal", Span::new("", 0, 0, 0, 0))),
-    }
-}
-
-//
-pub fn parse_literal_string_expr(tokens: &mut Tokens) -> ParseResult<LiteralExpr> {
-    let token = eat_token!(Token::Str(..) in tokens);
-    match token {
-        Some(Token::Str(val, span, ..)) => Ok(LiteralExpr::Str(val, span)),
-        Some(token) => Err(ParseError::new("expected string literal", Span::new("", 0, 0, 0, 0))),
-        _ => Err(ParseError::new("expected string literal", Span::new("", 0, 0, 0, 0))),
-    }
-}
-
-//
-pub fn parse_operator_expr(tokens: &mut Tokens) -> ParseResult<OperatorExpr> {
-    unimplemented!()
-}
-
-//
-pub type ParseResult<T> = Result<T, ParseError>;
-
-//
-#[derive(Clone, Debug, PartialEq)]
-pub struct ParseError {
-    message: String,
-    span: Span,
-}
-
-impl ParseError {
-    pub fn new<M, S>(message: M, span: S) -> ParseError
-        where M: Into<String>,
-              S: Into<Span>
-    {
-        ParseError {
-            message: message.into(),
-            span: span.into(),
+    pub fn new(tokens: Tokens) -> Parser {
+        Parser {
+            cursor: 0,
+            tokens: tokens,
+            errors: Vec::new(),
         }
     }
 
-    pub fn message(&self) -> &String {
-        &self.message
+    pub fn peek_token(&self, lookahead: usize) -> Option<Token> {
+        if self.cursor + lookahead < self.tokens.len() {
+            Some(self.tokens[self.cursor + lookahead].clone())
+        } else {
+            None
+        }
     }
 
-    pub fn span(&self) -> &Span {
-        &self.span
+    pub fn current_token(&self) -> Option<Token> {
+        if self.cursor < self.tokens.len() {
+            Some(self.tokens[self.cursor].clone())
+        } else {
+            None
+        }
     }
+
+    pub fn next_token(&mut self) {
+        self.cursor += 1;
+    }
+
+    pub fn parse_expr(&mut self) -> Expr {
+        let lhs_expr = self.parse_unary_expr();
+        self.parse_binary_expr(lhs_expr)
+    }
+
+    pub fn parse_binary_expr(&mut self, lhs_expr: Expr) -> Expr {
+
+        // Get the next token.
+        let token = match self.current_token() {
+            Some(token) => token,
+            // Having no next token should finish the parsing of the binary
+            // expression.
+            None => return lhs_expr,
+        };
+        let prec = token.precedence();
+
+        // Parse the binary operator.
+        let operator = match token {
+            Token::Add(..) => Operator::Add,
+            Token::Div(..) => Operator::Div,
+            Token::Mul(..) => Operator::Mul,
+            Token::Sub(..) => Operator::Sub,
+            _ => return lhs_expr,
+        };
+
+        // We have now decided that this token can be parsed by this function
+        // so we can consume it.
+        self.next_token();
+
+        // Parse the next part of this binary expression.
+        let rhs_expr = self.parse_unary_expr();
+
+        match self.current_token() {
+            Some(next_token) => if prec > next_token.precedence() {
+                // The next token is of a lower precedence so this binary
+                // expression is should be parsed first, as the left hand side
+                // of the next.
+                self.parse_binary_expr(BinaryOperatorExpr::new(
+                    operator,
+                    lhs_expr,
+                    rhs_expr,
+                ).into())
+            } else {
+                // The next token is of a higher precedence so the right hand
+                // side of this expression is actually the left hand side of 
+                // the next binary expression.
+                BinaryOperatorExpr::new(
+                    operator,
+                    lhs_expr,
+                    self.parse_binary_expr(rhs_expr),
+                ).into()
+            },
+            // There are no more parts of the expression.
+            None => BinaryOperatorExpr::new(
+                operator,
+                lhs_expr,
+                rhs_expr,
+            ).into(),
+        }        
+    }
+
+    pub fn parse_unary_expr(&mut self) -> Expr {
+        let token = self.current_token();
+        match token {
+            Some(Token::ParenL(..)) => self.parse_paren_expr(),
+            Some(Token::Bool(..)) => self.parse_literal_bool_expr().into(),
+            Some(Token::Char(..)) => self.parse_literal_char_expr().into(),
+            Some(Token::Float(..)) => self.parse_literal_float_expr().into(),
+            Some(Token::Int(..)) => self.parse_literal_int_expr().into(),
+            Some(Token::Str(..)) => self.parse_literal_str_expr().into(),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn parse_paren_expr(&mut self) -> Expr {
+
+        // Eat the left parenthesis.
+        let token = self.current_token();
+        match token {
+            Some(Token::ParenL(..)) => self.next_token(),
+            _ => unimplemented!(),
+        };
+
+        // Parse the inner expression.
+        let expr = self.parse_expr();
+
+        // Eat the right parenthesis.
+        let token = self.current_token();
+        match token {
+            Some(Token::ParenR(..)) => self.next_token(),
+            _ => unimplemented!(),
+        };
+
+        expr
+    }
+
+    //
+    pub fn parse_literal_bool_expr(&mut self) -> LiteralExpr {
+        let token = self.current_token();
+        self.next_token();
+        match token {
+            Some(Token::Bool(val, span, ..)) => LiteralExpr::Bool(val, span),
+            _ => unimplemented!(),
+        }
+    }
+
+    //
+    pub fn parse_literal_char_expr(&mut self) -> LiteralExpr {
+        let token = self.current_token();
+        self.next_token();
+        match token {
+            Some(Token::Char(val, span, ..)) => LiteralExpr::Char(val, span),
+            _ => unimplemented!(),
+        }
+    }
+
+    //
+    pub fn parse_literal_float_expr(&mut self) -> LiteralExpr {
+        let token = self.current_token();
+        self.next_token();
+        match token {
+            Some(Token::Float(val, span, ..)) => LiteralExpr::Float(val, span),
+            _ => unimplemented!(),
+        }
+    }
+
+    //
+    pub fn parse_literal_int_expr(&mut self) -> LiteralExpr {
+        let token = self.current_token();
+        self.next_token();
+        match token {
+            Some(Token::Int(val, span, ..)) => LiteralExpr::Int(val, span),
+            _ => unimplemented!(),
+        }
+    }
+
+    //
+    pub fn parse_literal_str_expr(&mut self) -> LiteralExpr {
+        let token = self.current_token();
+        self.next_token();
+        match token {
+            Some(Token::Str(val, span, ..)) => LiteralExpr::Str(val, span),
+            _ => unimplemented!(),
+        }
+    }
+
 }
