@@ -40,8 +40,7 @@ pub type Identifiers = Vec<Identifier>;
 /// struct. The globally unique id is automatically generated and the empty
 /// string is a valid name.
 #[repr(C)]
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Identifier {
     pub id: usize,
     pub name: String,
@@ -154,7 +153,7 @@ impl Hash for Identifier {
 /// source code must use the `Symbol` struct. The `Symbol` should not be used
 /// to identify a component, but rather to name it with a name that is
 /// directly reflected in the source code.
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Symbol {
     identifier: Identifier,
 }

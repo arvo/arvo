@@ -7,5 +7,11 @@ pub mod identifier;
 pub mod lexer;
 pub mod parser;
 pub mod ast;
+// pub mod air;
+// pub mod resolver;
 
 pub mod compile;
+pub use compile::compile;
+
+pub mod repl;
+pub use repl::repl;

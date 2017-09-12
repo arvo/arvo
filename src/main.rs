@@ -3,6 +3,8 @@
 extern crate arvoc;
 extern crate getopts;
 
+use arvoc::compile;
+use arvoc::repl;
 use getopts::Options;
 use std::env;
 
@@ -59,12 +61,13 @@ fn run(config: &Config) {
         } else if subcommand == "version" {
             print_version();
         } else if subcommand == "compile" {
-            unimplemented!()
+            compile();
         } else {
             print_usage(&config.program_name, &config.program_opts);
         }
     } else {
-        print_usage(&config.program_name, &config.program_opts);
+        print_version();
+        repl();
     }
 }
 

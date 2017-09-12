@@ -3,46 +3,41 @@
 #[cfg(test)]
 pub mod mod_test;
 
-#[macro_use]
-pub mod macros;
-
-use super::lexer::{Position, Span, Spanned, Token, Tokens, Precedence};
+use super::lexer::{Token, Tokens};
 use super::ast::*;
 
 pub struct Parser {
-    cursor: usize,
+    token_cursor: usize,
     tokens: Tokens,
-    errors: Vec<String>,
 }
 
 impl Parser {
 
     pub fn new(tokens: Tokens) -> Parser {
         Parser {
-            cursor: 0,
+            token_cursor: 0,
             tokens: tokens,
-            errors: Vec::new(),
         }
     }
 
     pub fn peek_token(&self, lookahead: usize) -> Option<Token> {
-        if self.cursor + lookahead < self.tokens.len() {
-            Some(self.tokens[self.cursor + lookahead].clone())
+        if self.token_cursor + lookahead < self.tokens.len() {
+            Some(self.tokens[self.token_cursor + lookahead].clone())
         } else {
             None
         }
     }
 
     pub fn current_token(&self) -> Option<Token> {
-        if self.cursor < self.tokens.len() {
-            Some(self.tokens[self.cursor].clone())
+        if self.token_cursor < self.tokens.len() {
+            Some(self.tokens[self.token_cursor].clone())
         } else {
             None
         }
     }
 
     pub fn next_token(&mut self) {
-        self.cursor += 1;
+        self.token_cursor += 1;
     }
 
     pub fn parse_expr(&mut self) -> Expr {

@@ -14,20 +14,39 @@ pub mod context;
 pub use self::context::*;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum Air {
+    Expr(Expr),
+    Nil,
+}
+
+impl From<Expr> for Air {
+    fn from(expr: Expr) -> Air {
+        Air::Expr(expr)
+    }
+}
+
+impl From<Box<Expr>> for Air {
+    fn from(expr: Box<Expr>) -> Air {
+        Air::Expr(*expr)
+    }
+}
+
+///
+#[derive(Clone, Debug, PartialEq)]
 pub struct AliasType {
     inner: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AssignExpr {
     lhs: Expr,
     rhs: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlockExpr {
     pub identifier: Identifier,
     pub body: Exprs,
@@ -66,7 +85,7 @@ impl Identify for BlockExpr {
 pub type BlockExprs = Vec<BlockExpr>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CallExpr {
     pub identifier: Identifier,
     pub target: Expr,
@@ -90,14 +109,14 @@ impl Identify for CallExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DerefExpr {
     identifier: Identifier,
     inner: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EnumType {
     symbol: Symbol,
     params: Types,
@@ -105,7 +124,7 @@ pub struct EnumType {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ForExpr {
     identifier: Identifier,
     formals: Variables,
@@ -114,7 +133,7 @@ pub struct ForExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Function {
     pub symbol: Symbol,
     pub formals: Variables,
@@ -152,7 +171,7 @@ pub type Functions = Vec<Function>;
 pub type FunctionTable = HashMap<Identifier, Function>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IfExpr {
     identifier: Identifier,
     condition: Expr,
@@ -161,28 +180,28 @@ pub struct IfExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ItemExpr {
     identifier: Identifier,
     item: Item,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GenericType {
     identifier: Identifier,
     params: Types,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LambdaType {
     formals: Types,
     ret: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LetExpr {
     identifier: Identifier,
     variable: Variable,
@@ -190,14 +209,14 @@ pub struct LetExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LiteralExpr {
     identifier: Identifier,
     literal: Literal,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Module {
     pub symbol: Symbol,
     pub function_table: FunctionTable,
@@ -240,33 +259,33 @@ pub type Modules = Vec<Module>;
 pub type ModuleTable = HashMap<Identifier, Module>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PtrType {
     inner: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RefType {
     inner: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RefExpr {
     identifier: Identifier,
     inner: Expr,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StructExpr {
     elements: Vec<(Variable, Expr)>,
     ty: Type,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StructType {
     symbol: Symbol,
     params: Types,
@@ -274,7 +293,7 @@ pub struct StructType {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Variable {
     pub symbol: Symbol,
     pub ty: Type,
@@ -299,14 +318,14 @@ impl Symbolise for Variable {
 pub type Variables = Vec<Variable>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct VariableExpr {
     variable: Variable,
     parent: Exprs,
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct VoidExpr {
     identifier: Identifier,
 }
@@ -324,7 +343,7 @@ impl Identify for VoidExpr {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Assign(Box<AssignExpr>),
     Block(Box<BlockExpr>),
@@ -369,11 +388,12 @@ impl From<VoidExpr> for Expr {
 pub type Exprs = Vec<Expr>;
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Item {
     Function(Box<Function>),
     Module(Box<Module>),
     Type(Box<Type>),
+    Uresolved(Box<Unresolved>),
     Variable(Box<Variable>),
 }
 
@@ -402,7 +422,7 @@ impl From<Variable> for Item {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     Bool(bool),
     Channel(Expr, Expr),
@@ -424,7 +444,7 @@ pub enum Literal {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveType {
     Bool,
     Char,
@@ -444,7 +464,7 @@ pub enum PrimitiveType {
 }
 
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Type {
     Alias(Box<AliasType>),
     Enum(Box<EnumType>),

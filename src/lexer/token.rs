@@ -318,7 +318,7 @@ impl Token {
             r"(?P<Div>/)|",
             r"(?P<DivEq>/=)|",
             r"(?P<Equal>=)|",
-            r"(?P<NotEqual>\!=)|",
+            r"(?P<NotEqual>!=)|",
             r"(?P<LessThan><)|",
             r"(?P<LessThanEq><=)|",
             r"(?P<GreaterThan>>)|",

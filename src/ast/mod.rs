@@ -6,7 +6,7 @@
 //! errors in the raw input.
 
 use super::identifier::Identifier;
-use super::lexer::{Position, Span, Spanned};
+use super::lexer::{Span, Spanned};
 
 ///
 #[derive(Clone, Debug, PartialEq)]
