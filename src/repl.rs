@@ -23,10 +23,11 @@ pub fn repl() {
         if input == "" {
             break;
         }
-        println!("you said {}", input);
 
         let tokens = lexer::Token::tokenise("", input.as_str());
-        let expr = parser::Parser::new(tokens).parse_expr();
+        let mut parser = parser::Parser::new(tokens);
+        let expr = parser.parse_expr();
+        parser.print_errors();
 
         println!("{:#?}", expr);
     }

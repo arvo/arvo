@@ -3,12 +3,35 @@
 #[cfg(test)]
 pub mod mod_test;
 
-use super::lexer::{Token, Tokens};
+use super::lexer::{Span, Spanned, Token, Tokens};
 use super::ast::*;
+
+use std::fmt;
+
+pub struct ParserErr {
+    span: Span,
+    message: String,
+}
+
+impl ParserErr {
+    pub fn new(span: Span, message: String) -> ParserErr {
+        ParserErr {
+            span: span,
+            message: message,
+        }
+    }
+}
+
+impl fmt::Display for ParserErr {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "{}: {}", self.span.begin(), self.message)
+    }
+}
 
 pub struct Parser {
     token_cursor: usize,
     tokens: Tokens,
+    errors: Vec<ParserErr>,
 }
 
 impl Parser {
@@ -17,6 +40,7 @@ impl Parser {
         Parser {
             token_cursor: 0,
             tokens: tokens,
+            errors: Vec::new(),
         }
     }
 
@@ -62,7 +86,10 @@ impl Parser {
             Token::Div(..) => Operator::Div,
             Token::Mul(..) => Operator::Mul,
             Token::Sub(..) => Operator::Sub,
-            _ => return lhs_expr,
+            _ => {
+                self.errors.push(ParserErr::new(token.span().clone(), format!("Unexpect token {}", token)));
+                return lhs_expr;
+            },
         };
 
         // We have now decided that this token can be parsed by this function
@@ -183,6 +210,12 @@ impl Parser {
         match token {
             Some(Token::Str(val, span, ..)) => LiteralExpr::Str(val, span),
             _ => unimplemented!(),
+        }
+    }
+
+    pub fn print_errors(&self) {
+        for err in self.errors.iter() {
+            println!("{}", err);
         }
     }
 
