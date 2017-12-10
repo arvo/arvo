@@ -92,8 +92,7 @@ impl Parser {
             },
         };
 
-        // We have now decided that this token can be parsed by this function
-        // so we can consume it.
+        // We have now decided that this token can be parsed so we consume it.
         self.next_token();
 
         // Parse the next part of this binary expression.

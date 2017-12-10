@@ -1,0 +1,7 @@
+import io
+import math
+
+fn main {
+    let x = math.sqrt (2) * math.sqrt (3)
+    io.writeLn (x)
+}

@@ -1,0 +1,19 @@
+import io
+
+fn main {
+    foo ()
+    bar ()
+    io.writeLn (baz (foo (), bar ()))
+}
+
+fn foo {
+    1
+}
+
+fn bar {
+    2
+}
+
+fn baz (x int, y int) {
+    x + y
+}

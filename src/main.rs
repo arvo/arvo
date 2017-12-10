@@ -14,12 +14,6 @@ fn main() {
     run(&config);
 }
 
-struct Config<'a> {
-    program_name: &'a String,
-    program_opts: Options,
-    program_subcommand: Option<String>,
-}
-
 fn parse_arguments<'a>(program_args: &'a Vec<String>) -> Config<'a> {
 
     let name = &program_args[0];
@@ -78,4 +72,10 @@ fn print_usage(program: &str, opts: &Options) {
 
 fn print_version() {
     println!("Arvo version 0.1.0");
+}
+
+struct Config<'a> {
+    program_name: &'a String,
+    program_opts: Options,
+    program_subcommand: Option<String>,
 }

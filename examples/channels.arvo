@@ -1,0 +1,7 @@
+import io
+
+fn main {
+    mut chan := ..
+    chan <- 420
+    io.writeLn (<- chan)
+}
