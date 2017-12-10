@@ -7,19 +7,11 @@ authors = ["Benjamin Wang <benjamin.jl.wang@gmail.com>"]
 name = "arvoc"
 path = "src/lib.rs"
 
-[dependencies.libprelude]
-path = "src/libprelude"
-version = "*"
-
-[dependencies.libruntime]
-path = "src/libruntime"
-version = "*"
-
 [dependencies]
 getopts = "*"
 lazy_static = "*"
 libc = "*"
-llvm-sys = "39"
+# llvm-sys = "40"
 regex = "*"
 
 

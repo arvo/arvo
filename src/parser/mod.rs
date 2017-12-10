@@ -4,7 +4,7 @@
 pub mod mod_test;
 
 use super::lexer::{Span, Spanned, Token, Tokens};
-use super::ast::*;
+use super::ast::{BinaryOperatorExpr, Expr, LiteralExpr, Operator};
 
 use std::fmt;
 
